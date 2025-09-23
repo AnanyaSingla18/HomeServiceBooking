@@ -1,0 +1,143 @@
+﻿body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f8f9fa;
+  padding-bottom: 60px;  /* Space for fixed footer */
+  scroll-padding-top: 76px;  /* Offset for navbar on anchor scrolls */
+}
+.service-card {
+  border: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+.service-card:hover {
+  transform: translateY(-5px);
+}
+.btn-book {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+.btn-book:hover {
+  background-color: #0056b3;
+}
+/* Hero Header Styles (Enhanced) */
+.hero {
+  position: relative;
+  background-image: url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: scroll;  /* Smooth mobile scroll */
+  height: 100vh;  /* Full viewport height */
+  display: flex;
+  align-items: center;
+}
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);  /* Dark overlay */
+  z-index: 1;
+}
+.hero .container {
+  position: relative;
+  z-index: 2;  /* Text above overlay */
+}
+/* NEW: Hero Title Styling */
+.hero-title {
+  color: white !important;  /* Pure white for contrast */
+  text-shadow: 3px 3px 6px rgba(0,0,0,0.7);  /* Stronger shadow */
+  animation: fadeInUp 1s ease-out;  /* Entrance animation */
+  line-height: 1.2;  /* Tighter for large font */
+}
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.5rem;  /* Smaller on mobile */
+  }
+}
+/* NEW: Hero Subtitle Styling */
+.hero-subtitle {
+  color: white;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);  /* Lighter shadow */
+  max-width: 600px;  /* Prevent over-wide on desktop */
+  animation: fadeInUp 1s ease-out 0.3s both;  /* Delayed entrance */
+}
+/* NEW: Hero Button Styling */
+.btn-hero {
+  font-size: 1.2rem;  /* Larger text */
+  font-weight: 500;
+  border-width: 2px;  /* Thicker blue border */
+  transition: all 0.3s ease;  /* Smooth hover */
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);  /* Subtle shadow */
+  animation: fadeInUp 1s ease-out 0.6s both;  /* Delayed entrance */
+}
+.btn-hero:hover {
+  background-color: #f8f9fa;  /* Slightly darker light on hover */
+  color: #007bff !important;  /* Blue text on hover */
+  transform: translateY(-2px);  /* Lift effect */
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+.btn-hero i {
+  transition: transform 0.2s ease;  /* Icon slide on hover */
+}
+.btn-hero:hover i {
+  transform: translateX(3px);  /* Arrow moves right */
+}
+/* NEW: Fade-in Animation Keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.footer {
+  background-color: #343a40;
+  color: white;
+  text-align: center;
+  padding: 15px 0;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  white-space: nowrap;
+  font-size: 0.9em;
+}
+.footer p {
+  margin: 0;
+}
+/* Existing: For Bookings Table */
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+.table th {
+  font-weight: bold;
+}
+/* Existing: For Confirmation Page */
+.card.border-success {
+  border-width: 3px;
+}
+.text-success {
+  font-weight: 500;
+}
+/* Existing: For Feature Boxes */
+.feature-box {
+  transition: transform 0.2s ease-in-out;
+  border-radius: 10px;
+}
+.feature-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+.feature-icon i {
+  color: #007bff;
+  display: block;
+  transition: transform 0.2s ease-in-out;
+}
+.feature-box:hover .feature-icon i {
+  transform: scale(1.1) rotate(5deg);
+}

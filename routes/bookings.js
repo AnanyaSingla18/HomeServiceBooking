@@ -3,27 +3,37 @@ const Booking = require("../models/Booking");
 const Service = require("../models/Service");
 const router = express.Router();
 
-// Helper: Validate contact details based on method
-function validateContact(contactMethod, email, phone) {
+// Helper: Validate contact details
+const validateContact = (contactMethod, email, phone) => {
   if (contactMethod === 'email') {
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      return { valid: false, error: "Please enter a valid email address." };
-    }
+    if (!email) return { valid: false, error: 'Email is required for email contact.' };
+    if (!/^\S+@\S+\.\S+$/.test(email)) return { valid: false, error: 'Please enter a valid email address.' };
   } else if (contactMethod === 'phone') {
-    if (!phone || !/^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/.test(phone)) {
-      return { valid: false, error: "Please enter a valid Indian phone number (10 digits, starting with 6-9)." };
-    }
+    if (!phone) return { valid: false, error: 'Phone is required for phone contact.' };
+    if (!/^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/.test(phone)) return { valid: false, error: 'Please enter a valid Indian phone number (10 digits, starting with 6-9).' };
   }
   return { valid: true };
-}
+};
 
-// GET /api/bookings - List all bookings (with optional query filter)
+// GET /api/bookings - List bookings (filter by user if session)
 router.get("/", async (req, res) => {
   try {
-    const { customerName, serviceId } = req.query;  // Optional filters
     let query = {};
-    if (customerName) query.customerName = { $regex: customerName, $options: 'i' };
-    if (serviceId) query.service = serviceId;
+    // Filter by user if authenticated (from session)
+    if (req.session && req.session.userId) {
+      query.user = req.session.userId;
+      console.log(`🔍 Fetching bookings for user: ${req.session.userName}`);
+    } else {
+      console.log("🔍 Fetching all bookings (public access - consider logging in)");
+    }
+    
+    // Support filters: ?customerName=John (regex), ?serviceId=ID
+    if (req.query.customerName) {
+      query.customerName = { $regex: req.query.customerName, $options: 'i' };
+    }
+    if (req.query.serviceId) {
+      query.service = req.query.serviceId;
+    }
 
     const bookings = await Booking.find(query).populate("service").sort({ createdAt: -1 });
     console.log(`📋 Fetched ${bookings.length} bookings`);
@@ -34,59 +44,65 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/bookings/:id - Get single booking by ID
+// GET /api/bookings/:id - Single booking
 router.get("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const booking = await Booking.findById(id).populate("service");
+    const booking = await Booking.findById(req.params.id).populate("service");
     if (!booking) {
       return res.status(404).json({ error: "Booking not found" });
     }
-    console.log(`🔍 Fetched booking: ${booking._id}`);
+    // Ownership check: Only allow if public or user's booking
+    if (req.session && req.session.userId && booking.user && booking.user.toString() !== req.session.userId) {
+      return res.status(403).json({ error: "Unauthorized to view this booking" });
+    }
+    console.log(`👁️ Viewed booking: ${req.params.id} by ${req.session?.userName || 'public'}`);
     res.json(booking);
   } catch (err) {
-    console.error("GET booking by ID error:", err);
+    console.error("GET booking error:", err);
     res.status(500).json({ error: "Failed to fetch booking" });
   }
 });
 
-// POST /api/bookings - Create new booking
+// POST /api/bookings - Create booking
 router.post("/", async (req, res) => {
   try {
-    const { service: serviceId, customerName, date, contactMethod, email, phone, timeSlot } = req.body;
+    const { service, customerName, date, contactMethod, email, phone, timeSlot } = req.body;
     
-    // Basic validation
-    if (!serviceId || !customerName || !date || !contactMethod || !timeSlot) {
-      return res.status(400).json({ error: "Missing required fields: service, customerName, date, contactMethod, timeSlot" });
+    // Required fields
+    if (!service || !customerName || !date || !contactMethod || !timeSlot) {
+      return res.status(400).json({ error: "Required fields: service, customerName, date, contactMethod, timeSlot" });
     }
 
     // Validate service exists
-    const service = await Service.findById(serviceId);
-    if (!service) {
+    const serviceDoc = await Service.findById(service);
+    if (!serviceDoc) {
       return res.status(400).json({ error: "Invalid service ID" });
     }
 
-    // Conditional contact validation
-    const contactValidation = validateContact(contactMethod, email, phone);
-    if (!contactValidation.valid) {
-      return res.status(400).json({ error: contactValidation.error });
+    // Validate contact
+    const contactValid = validateContact(contactMethod, email, phone);
+    if (!contactValid.valid) {
+      return res.status(400).json({ error: contactValid.error });
     }
 
-    // Create and save
-    const booking = new Booking({ 
-      service: serviceId, 
-      customerName, 
-      date: new Date(date), 
+    // Create booking (add user if session)
+    const bookingData = {
+      service,
+      customerName,
+      date: new Date(date),
       contactMethod,
-      email: contactMethod === 'email' ? email : undefined,
-      phone: contactMethod === 'phone' ? phone : undefined,
-      timeSlot
-    });
+      timeSlot,
+      ...(contactMethod === 'email' && { email }),
+      ...(contactMethod === 'phone' && { phone }),
+      ...(req.session && req.session.userId && { user: req.session.userId })
+    };
+
+    const booking = new Booking(bookingData);
     await booking.save();
 
     // Populate for response
     const populatedBooking = await Booking.findById(booking._id).populate("service");
-    console.log("✅ Created booking:", booking._id);
+    console.log(`✅ Created booking: ${booking._id} for ${req.session?.userName || customerName}`);
     res.status(201).json(populatedBooking);
   } catch (err) {
     console.error("POST booking error:", err);
@@ -94,68 +110,72 @@ router.post("/", async (req, res) => {
   }
 });
 
-// PUT /api/bookings/:id - Update existing booking (full update)
+// PUT /api/bookings/:id - Update booking
 router.put("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const { service: serviceId, customerName, date, contactMethod, email, phone, timeSlot } = req.body;
+    const { service, customerName, date, contactMethod, email, phone, timeSlot } = req.body;
     
-    // Basic validation (allow partial, but check provided fields)
+    // Required fields
     if (!customerName || !date || !contactMethod || !timeSlot) {
       return res.status(400).json({ error: "Required fields: customerName, date, contactMethod, timeSlot" });
     }
 
-    // Validate service if provided
-    if (serviceId) {
-      const service = await Service.findById(serviceId);
-      if (!service) {
-        return res.status(400).json({ error: "Invalid service ID" });
-      }
+    // Validate contact
+    const contactValid = validateContact(contactMethod, email, phone);
+    if (!contactValid.valid) {
+      return res.status(400).json({ error: contactValid.error });
     }
 
-    // Conditional contact validation (if method changed/provided)
-    const contactValidation = validateContact(contactMethod, email, phone);
-    if (!contactValidation.valid) {
-      return res.status(400).json({ error: contactValidation.error });
+    // Find existing booking for ownership check
+    const existingBooking = await Booking.findById(req.params.id);
+    if (!existingBooking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+    // Ownership check
+    if (req.session && req.session.userId && existingBooking.user && existingBooking.user.toString() !== req.session.userId) {
+      return res.status(403).json({ error: "Unauthorized to update this booking" });
     }
 
-    // Update
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      id,
-      { 
-        service: serviceId, 
-        customerName, 
-        date: new Date(date), 
-        contactMethod,
-        email: contactMethod === 'email' ? email : undefined,
-        phone: contactMethod === 'phone' ? phone : undefined,
-        timeSlot
-      },
+    // Update (service optional)
+    const updateData = {
+      ...(service && { service }),
+      customerName,
+      date: new Date(date),
+      contactMethod,
+      ...(contactMethod === 'email' && { email }),
+      ...(contactMethod === 'phone' && { phone }),
+      timeSlot
+    };
+
+    const booking = await Booking.findByIdAndUpdate(
+      req.params.id,
+      updateData,
       { new: true, runValidators: true }
     ).populate("service");
 
-    if (!updatedBooking) {
-      return res.status(404).json({ error: "Booking not found" });
-    }
-
-    console.log(`✏️ Updated booking: ${updatedBooking._id}`);
-    res.json(updatedBooking);
+    console.log(`✏️ Updated booking: ${req.params.id} by ${req.session?.userName || 'public'}`);
+    res.json(booking);
   } catch (err) {
     console.error("PUT booking error:", err);
     res.status(400).json({ error: err.message || "Failed to update booking" });
   }
 });
 
-// DELETE /api/bookings/:id - Delete booking by ID
+// DELETE /api/bookings/:id - Delete booking
 router.delete("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const deletedBooking = await Booking.findByIdAndDelete(id);
-    if (!deletedBooking) {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
       return res.status(404).json({ error: "Booking not found" });
     }
-    console.log(`🗑️ Deleted booking: ${deletedBooking._id} (${deletedBooking.customerName})`);
-    res.json({ message: "Booking deleted successfully", deleted: deletedBooking });
+    // Ownership check
+    if (req.session && req.session.userId && booking.user && booking.user.toString() !== req.session.userId) {
+      return res.status(403).json({ error: "Unauthorized to delete this booking" });
+    }
+
+    await Booking.findByIdAndDelete(req.params.id);
+    console.log(`🗑️ Deleted booking: ${req.params.id} by ${req.session?.userName || 'public'}`);
+    res.json({ message: "Booking deleted successfully", id: req.params.id });
   } catch (err) {
     console.error("DELETE booking error:", err);
     res.status(500).json({ error: "Failed to delete booking" });

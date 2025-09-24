@@ -15,17 +15,10 @@ const validateContact = (contactMethod, email, phone) => {
   return { valid: true };
 };
 
-// GET /api/bookings - List bookings (filter by user if session)
+// GET /api/bookings - List all bookings (public)
 router.get("/", async (req, res) => {
   try {
     let query = {};
-    // Filter by user if authenticated (from session)
-    if (req.session && req.session.userId) {
-      query.user = req.session.userId;
-      console.log(`🔍 Fetching bookings for user: ${req.session.userName}`);
-    } else {
-      console.log("🔍 Fetching all bookings (public access - consider logging in)");
-    }
     
     // Support filters: ?customerName=John (regex), ?serviceId=ID
     if (req.query.customerName) {
@@ -51,11 +44,6 @@ router.get("/:id", async (req, res) => {
     if (!booking) {
       return res.status(404).json({ error: "Booking not found" });
     }
-    // Ownership check: Only allow if public or user's booking
-    if (req.session && req.session.userId && booking.user && booking.user.toString() !== req.session.userId) {
-      return res.status(403).json({ error: "Unauthorized to view this booking" });
-    }
-    console.log(`👁️ Viewed booking: ${req.params.id} by ${req.session?.userName || 'public'}`);
     res.json(booking);
   } catch (err) {
     console.error("GET booking error:", err);
@@ -85,7 +73,6 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: contactValid.error });
     }
 
-    // Create booking (add user if session)
     const bookingData = {
       service,
       customerName,
@@ -93,8 +80,7 @@ router.post("/", async (req, res) => {
       contactMethod,
       timeSlot,
       ...(contactMethod === 'email' && { email }),
-      ...(contactMethod === 'phone' && { phone }),
-      ...(req.session && req.session.userId && { user: req.session.userId })
+      ...(contactMethod === 'phone' && { phone })
     };
 
     const booking = new Booking(bookingData);
@@ -102,7 +88,7 @@ router.post("/", async (req, res) => {
 
     // Populate for response
     const populatedBooking = await Booking.findById(booking._id).populate("service");
-    console.log(`✅ Created booking: ${booking._id} for ${req.session?.userName || customerName}`);
+    console.log(`✅ Created booking: ${booking._id} (${customerName})`);
     res.status(201).json(populatedBooking);
   } catch (err) {
     console.error("POST booking error:", err);
@@ -126,17 +112,6 @@ router.put("/:id", async (req, res) => {
       return res.status(400).json({ error: contactValid.error });
     }
 
-    // Find existing booking for ownership check
-    const existingBooking = await Booking.findById(req.params.id);
-    if (!existingBooking) {
-      return res.status(404).json({ error: "Booking not found" });
-    }
-    // Ownership check
-    if (req.session && req.session.userId && existingBooking.user && existingBooking.user.toString() !== req.session.userId) {
-      return res.status(403).json({ error: "Unauthorized to update this booking" });
-    }
-
-    // Update (service optional)
     const updateData = {
       ...(service && { service }),
       customerName,
@@ -153,7 +128,11 @@ router.put("/:id", async (req, res) => {
       { new: true, runValidators: true }
     ).populate("service");
 
-    console.log(`✏️ Updated booking: ${req.params.id} by ${req.session?.userName || 'public'}`);
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    console.log(`✏️ Updated booking: ${req.params.id}`);
     res.json(booking);
   } catch (err) {
     console.error("PUT booking error:", err);
@@ -168,13 +147,9 @@ router.delete("/:id", async (req, res) => {
     if (!booking) {
       return res.status(404).json({ error: "Booking not found" });
     }
-    // Ownership check
-    if (req.session && req.session.userId && booking.user && booking.user.toString() !== req.session.userId) {
-      return res.status(403).json({ error: "Unauthorized to delete this booking" });
-    }
 
     await Booking.findByIdAndDelete(req.params.id);
-    console.log(`🗑️ Deleted booking: ${req.params.id} by ${req.session?.userName || 'public'}`);
+    console.log(`🗑️ Deleted booking: ${req.params.id}`);
     res.json({ message: "Booking deleted successfully", id: req.params.id });
   } catch (err) {
     console.error("DELETE booking error:", err);

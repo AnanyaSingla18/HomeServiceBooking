@@ -1,294 +1,209 @@
-﻿const express = require("express");
-const path = require("path");
-const mongoose = require("mongoose");
-const session = require("express-session");
-const bcrypt = require("bcryptjs");
-const Booking = require("./models/Booking");
-const Service = require("./models/Service");
-const User = require("./models/User");  // NEW: User model
+﻿require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const jwt = require('jsonwebtoken');
+const dbType = process.env.DB_TYPE || 'mongo';
+const models = dbType === 'postgres' ? require('./models_sql').compat : require('./models');
+const User = models.User;
+const Service = models.Service;
+const Booking = models.Booking;
+
 const app = express();
-const port = 3000;
-
-// Connect to Local MongoDB
-const MONGO_URI = "mongodb://localhost:27017/homeServiceDB";
-mongoose.connect(MONGO_URI)
-  .then(() => console.log("✅ Connected to Local MongoDB"))
-  .catch(err => console.error("❌ MongoDB Connection Error:", err));
-
-// Middleware
+app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// NEW: Session Middleware (secure cookies)
-app.use(session({
-  secret: 'your-secret-key-change-in-prod',  // Change to env var
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: false,  // true in HTTPS/prod
-    httpOnly: true,  // Prevent JS access
-    maxAge: 1000 * 60 * 60 * 24  // 1 day
-  }
-}));
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/homeServiceDB')
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB error:', err));
 
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-
-// NEW: Auth Middleware - Protect routes
-const isAuthenticated = (req, res, next) => {
-  if (req.session.userId) {
-    return next();  // Logged in
-  }
-  res.redirect('/login?error=Please log in to access this page.');  // Redirect to login
-};
-
-// NEW: Auth Routes (Signup/Login/Logout)
-app.get('/signup', (req, res) => {
-  res.render('signup', { error: null, name: '', email: '', password: '' });
-});
-
-app.post('/signup', async (req, res) => {
+const hasPgConfig = !!(process.env.DATABASE_URL || process.env.PG_HOST || process.env.PG_URI || process.env.PG_DATABASE);
+if (hasPgConfig) {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-      return res.render('signup', { 
-        error: 'All fields are required!', 
-        name, email, password 
-      });
+    const sqlModels = require('./models_sql');
+    sqlModels.sequelize.authenticate()
+      .then(() => console.log('Postgres (Sequelize) connected'))
+      .catch(err => console.error('Postgres connect error:', err));
+    if (process.env.PG_SYNC === 'true') {
+      sqlModels.sync({ force: false })
+        .then(() => console.log('Postgres tables synced'))
+        .catch(err => console.error('Postgres sync error:', err));
     }
-    if (password.length < 6) {
-      return res.render('signup', { 
-        error: 'Password must be at least 6 characters!', 
-        name, email, password 
-      });
-    }
-
-    // Check if user exists
-    const existingUser  = await User.findOne({ email });
-    if (existingUser ) {
-      return res.render('signup', { 
-        error: 'User  with this email already exists!', 
-        name, email, password 
-      });
-    }
-
-    // Create user (hash auto via pre-save)
-    const user = new User({ name, email, password });
-    await user.save();
-
-    // Start session
-    req.session.userId = user._id;
-    req.session.userName = user.name;
-
-    console.log(`✅ New user signed up: ${user.name}`);
-    res.redirect('/services');  // Redirect to services after signup
   } catch (err) {
-    console.error('Signup error:', err);
-    res.render('signup', { 
-      error: 'Signup failed. Please try again.', 
-      name: req.body.name, 
-      email: req.body.email, 
-      password: ''  // Don't repopulate password
-    });
+    console.warn('Postgres not setup:', err.message);
   }
-});
+}
 
-app.get('/login', (req, res) => {
-  const error = req.query.error || null;
-  res.render('login', { error, email: '', password: '' });
-});
-
-app.post('/login', async (req, res) => {
+app.use(async (req, res, next) => {
+  res.locals.user = null;
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.render('login', { 
-        error: 'Email and password are required!', 
-        email, password 
-      });
+    const token = req.cookies?.token || (req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
+    if (token) {
+      const payload = jwt.verify(token, process.env.JWT_SECRET || 'change_this_secret');
+      const dbType = process.env.DB_TYPE || 'mongo';
+      const models = dbType === 'postgres' ? require('./models_sql').compat : require('./models');
+      const UserModel = models.User;
+      let user = await UserModel.findById(payload.id);
+      if (user && user.toJSON) user = user.toJSON();
+      if (user) res.locals.user = user;
     }
-
-    // Find user (select password)
-    const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await user.comparePassword(password))) {
-      return res.render('login', { 
-        error: 'Invalid email or password!', 
-        email, password: '' 
-      });
-    }
-
-    // Start session
-    req.session.userId = user._id;
-    req.session.userName = user.name;
-
-    console.log(`✅ User logged in: ${user.name}`);
-    res.redirect('/services');  // Or /bookings if preferred
-  } catch (err) {
-    console.error('Login error:', err);
-    res.render('login', { 
-      error: 'Login failed. Please try again.', 
-      email: req.body.email, 
-      password: '' 
-    });
-  }
+  } catch {}
+  next();
 });
 
-app.get('/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) console.error('Logout error:', err);
-    console.log('👋 User logged out');
-    res.redirect('/');
-  });
-});
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/services', require('./routes/services'));
+app.use('/admin', require('./routes/admin'));
 
-// Home route (show login/signup if not auth)
-app.get("/", (req, res) => {
-  if (req.session.userId) {
-    res.redirect('/services');  // Logged in → Services
-  } else {
-    res.render("index", { user: null });  // Update index.ejs to show login links
-  }
-});
-
-// Services route (public)
-app.get("/services", async (req, res) => {
+app.get('/', async (req, res) => {
   try {
-    const services = await Service.find();
-    res.render("services", { services, user: req.session.userName || null });
+    let services;
+    if (process.env.DB_TYPE === 'postgres') {
+      services = await Service.find();
+      services.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else {
+      services = await Service.find().sort({ createdAt: -1 });
+    }
+    res.render('index', { services });
   } catch (err) {
-    console.error("Services fetch error:", err);
-    res.status(500).send("Error loading services");
+    res.render('index', { services: [] });
   }
 });
 
-// NEW: Protected Booking Form
-app.get("/booking", isAuthenticated, async (req, res) => {
+app.get('/services', async (req, res) => {
+  try {
+    let services = await Service.find();
+    if (process.env.DB_TYPE === 'postgres') {
+      services.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    res.render('services', { services });
+  } catch (err) {
+    res.render('services', { services: [] });
+  }
+});
+
+app.get('/bookings', async (req, res) => {
+  try {
+    let bookings;
+    if (process.env.DB_TYPE === 'postgres') {
+      bookings = await Booking.find();
+    } else {
+      bookings = await Booking.find().populate('service').sort({ createdAt: -1 });
+    }
+    res.render('bookings', { bookings });
+  } catch {
+    res.render('bookings', { bookings: [] });
+  }
+});
+
+app.get('/booking', async (req, res) => {
   try {
     const serviceId = req.query.serviceId;
     let service = null;
-    if (serviceId) {
+
+    if (process.env.DB_TYPE === 'postgres') {
       service = await Service.findById(serviceId);
+    } else {
+      if (serviceId && serviceId.trim().length === 24) {
+        service = await Service.findById(serviceId);
+      }
     }
-    res.render("booking", { 
-      serviceId, 
-      service, 
+
+    res.render('booking', {
+      service,
+      serviceId: serviceId || '',
       error: null,
-      customerName: req.session.userName || '',  // Pre-fill with user name
-      date: "",
-      contactMethod: "",
-      email: "",
-      phone: "",
-      timeSlot: "",
-      user: req.session.userName
+      customerName: '',
+      date: '',
+      contactMethod: '',
+      email: '',
+      phone: '',
+      timeSlot: ''
     });
   } catch (err) {
-    console.error("Booking form error:", err);
-    res.status(500).send("Error loading form");
+    res.render('booking', {
+      service: null,
+      serviceId: '',
+      error: 'Error loading service',
+      customerName: '',
+      date: '',
+      contactMethod: '',
+      email: '',
+      phone: '',
+      timeSlot: ''
+    });
   }
 });
 
-// Protected POST /booking (add user ref)
-app.post("/booking", isAuthenticated, async (req, res) => {
+app.post('/booking', async (req, res) => {
   try {
     const { serviceId, customerName, date, contactMethod, email, phone, timeSlot } = req.body;
-    
-    // Basic validation
-    if (!serviceId || !customerName || !date || !contactMethod || !timeSlot) {
-      return res.render("booking", { 
-        serviceId, 
-        service: await Service.findById(serviceId),
-        error: "All fields are required, including contact method and time slot!" 
-      });
+
+    if (!serviceId || !serviceId.trim()) {
+      return res.render('booking', { service: null, serviceId: '', error: 'Service ID required', customerName, date, contactMethod, email, phone, timeSlot });
     }
 
-    // Conditional contact validation
-    let validationError = "";
-    if (contactMethod === 'email') {
-      if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-        validationError = "Please enter a valid email address.";
-      }
-    } else if (contactMethod === 'phone') {
-      if (!phone || !/^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/.test(phone)) {
-        validationError = "Please enter a valid Indian phone number (10 digits, starting with 6-9).";
-      }
+    if (!customerName || !date || !contactMethod || !timeSlot) {
+      const service = await Service.findById(serviceId);
+      return res.render('booking', { service, serviceId, error: 'Missing required fields', customerName, date, contactMethod, email, phone, timeSlot });
     }
 
-    if (validationError) {
-      return res.render("booking", { 
-        serviceId, 
-        service: await Service.findById(serviceId),
-        error: validationError,
-        customerName,
-        date,
-        contactMethod,
-        email: contactMethod === 'email' ? email : "",
-        phone: contactMethod === 'phone' ? phone : "",
-        timeSlot,
-        user: req.session.userName
-      });
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      return res.render('booking', { service: null, serviceId, error: 'Service not found', customerName, date, contactMethod, email, phone, timeSlot });
     }
 
-    // Save booking (add user ref)
-    const booking = new Booking({ 
-      service: serviceId, 
-      customerName, 
-      date: new Date(date), 
+    if (contactMethod === 'email' && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      return res.render('booking', { service, serviceId, error: 'Invalid email', customerName, date, contactMethod, email, phone, timeSlot });
+    }
+
+    if (contactMethod === 'phone' && (!phone || !/^[0-9]{10}$/.test(phone))) {
+      return res.render('booking', { service, serviceId, error: 'Invalid phone', customerName, date, contactMethod, email, phone, timeSlot });
+    }
+
+    const bookingPayload = process.env.DB_TYPE === 'postgres' ? {
+      serviceId,
+      customerName,
+      date: new Date(date),
       contactMethod,
       email: contactMethod === 'email' ? email : undefined,
       phone: contactMethod === 'phone' ? phone : undefined,
-      timeSlot,
-      user: req.session.userId  // NEW: Link to user
-    });
-    await booking.save();
-
-    // Fetch full service for confirmation
-    const service = await Service.findById(serviceId);
-    const fullBooking = { 
-      ...booking.toObject(), 
-      service: service 
+      timeSlot
+    } : {
+      service: serviceId,
+      customerName,
+      date: new Date(date),
+      contactMethod,
+      email: contactMethod === 'email' ? email : undefined,
+      phone: contactMethod === 'phone' ? phone : undefined,
+      timeSlot
     };
 
-    console.log("✅ Booking confirmed for user:", req.session.userName);
-    res.render("confirmation", { booking: fullBooking, user: req.session.userName });
+    const booking = await Booking.create(bookingPayload);
+    const populated = process.env.DB_TYPE === 'postgres'
+      ? await Booking.findById(booking._id || booking.id)
+      : await Booking.findById(booking._id).populate('service').populate('approvedBy');
+
+    res.render('confirmation', { booking: populated });
   } catch (err) {
-    console.error("Booking save error:", err);
-    res.render("booking", { 
-      serviceId: req.body.serviceId, 
-      service: await Service.findById(req.body.serviceId),
-      error: "Booking failed. Please try again.",
-      user: req.session.userName
+    res.render('booking', {
+      service: null,
+      serviceId: '',
+      error: 'Booking failed. Try again.',
+      customerName: '',
+      date: '',
+      contactMethod: '',
+      email: '',
+      phone: '',
+      timeSlot: ''
     });
   }
 });
 
-// NEW: Protected Bookings List (filter by user)
-app.get("/bookings", isAuthenticated, async (req, res) => {
-  try {
-    const bookings = await Booking.find({ user: req.session.userId }).populate("service");
-    // Debug log for null services
-    bookings.forEach((booking, index) => {
-      if (!booking.service) {
-        console.warn(`⚠️ Booking ${booking._id}: Service is null (ID: ${booking.service}). Possible orphan.`);
-      }
-    });
-    console.log(`📋 Loaded ${bookings.length} bookings for ${req.session.userName}`);
-    res.render("bookings", { bookings, user: req.session.userName });
-  } catch (err) {
-    console.error("Bookings fetch error:", err);
-    res.status(500).send("Error loading bookings");
-  }
-});
-
-// Mount API Routes (NEW: Protect with session check for web-like auth)
-app.use("/api/bookings", (req, res, next) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Unauthorized - Please log in" });
-  }
-  next();
-}, require("./routes/bookings"));
-
-app.use("/api/services", require("./routes/services"));  // Public
-
-// Start server
-app.listen(port, () => console.log(`🚀 Server running: http://localhost:${port}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

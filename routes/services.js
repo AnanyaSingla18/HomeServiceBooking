@@ -1,33 +1,45 @@
 ﻿const express = require("express");
-const Service = require("../models/Service");
 const router = express.Router();
+// Support both Mongo (Mongoose) and Postgres (Sequelize)
+const dbType = process.env.DB_TYPE || 'mongo';
+const models = dbType === 'postgres' ? require('../models_sql').compat : require('../models');
+const Service = models.Service;
 
-// GET /api/services - List all (public)
+// GET /api/services - list all services
 router.get("/", async (req, res) => {
   try {
     const services = await Service.find();
-    console.log(`🔧 Fetched ${services.length} services`);
     res.json(services);
   } catch (err) {
-    console.error("GET services error:", err);
-    res.status(500).json({ error: "Failed to fetch services" });
+    console.error("Services API error:", err);
+    res.status(500).json({ error: "Failed to load services" });
   }
 });
 
-// POST /api/services - Create (admin-only in prod, but public for demo)
+// GET /api/services/:id - single service
+router.get("/:id", async (req, res) => {
+  try {
+    const svc = await Service.findById(req.params.id);
+    if (!svc) return res.status(404).json({ error: "Service not found" });
+    res.json(svc);
+  } catch (err) {
+    console.error("Service fetch error:", err);
+    res.status(500).json({ error: "Failed to load service" });
+  }
+});
+
+// POST /api/services - create (development helper)
 router.post("/", async (req, res) => {
   try {
-    const { name, price, description } = req.body;
-    if (!name || !price || price < 0) {
-      return res.status(400).json({ error: "Required: name (string), price (positive number), description (optional)" });
-    }
-    const service = new Service({ name, price, description });
-    await service.save();
-    console.log("✅ Created service:", service._id);
-    res.status(201).json(service);
+    const { name, description, price } = req.body;
+    if (!name || price === undefined)
+      return res.status(400).json({ error: "name & price required" });
+    // create works for both mongoose and sequelize compat wrapper
+    const s = await Service.create({ name, description, price });
+    res.status(201).json(s);
   } catch (err) {
-    console.error("POST service error:", err);
-    res.status(400).json({ error: err.message || "Failed to create service" });
+    console.error("Service create error:", err);
+    res.status(500).json({ error: "Failed to create service" });
   }
 });
 

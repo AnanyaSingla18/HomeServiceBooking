@@ -1,12 +1,10 @@
 ﻿const mongoose = require("mongoose");
 
 const serviceSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true },
-  price: { type: Number, required: true }
-}, { timestamps: true });  // Optional: Adds createdAt/updatedAt
+  name: { type: String, required: true, trim: true },
+  description: { type: String, trim: true, default: "" },
+  price: { type: Number, required: true, min: 0 }
+}, { timestamps: true });
 
-// NEW: Defensive compile - Only if not already defined
-const Service = mongoose.models.Service || mongoose.model("Service", serviceSchema);
+module.exports = mongoose.model("Service", serviceSchema);
 
-module.exports = Service;

@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/homeServiceDB')
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/homeService')
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB error:', err));
 

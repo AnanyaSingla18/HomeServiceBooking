@@ -1,10 +1,10 @@
 ﻿const mongoose = require("mongoose");
-const Service = require("./models/Service");
+const Service = require("./models/service");
 const useSql = process.env.DB_TYPE === 'postgres';
 let sqlModels;
 if (useSql) sqlModels = require('./models_sql');
 
-const MONGO_URI = "mongodb://localhost:27017/homeServiceDB";
+const MONGO_URI = "mongodb://localhost:27017/homeService";
 
 mongoose.connect(MONGO_URI)
   .then(async () => {

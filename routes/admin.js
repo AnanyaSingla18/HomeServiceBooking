@@ -42,15 +42,10 @@ router.post('/login', async (req, res) => {
     if (!user)
       return res.render('admin-login', { error: 'Invalid credentials' });
 
-    // 🔥 PASSWORD CHECK (different for postgres)
-    if (dbType === 'postgres') {
-      if (user.password !== password) {
-        return res.render('admin-login', { error: 'Invalid credentials' });
-      }
-    } else {
-      const match = await user.comparePassword(password);
-      if (!match)
-        return res.render('admin-login', { error: 'Invalid credentials' });
+    // 🔥 PASSWORD CHECK (use bcrypt for all DBs)
+    const match = await user.comparePassword(password);
+    if (!match) {
+      return res.render('admin-login', { error: 'Invalid credentials' });
     }
 
     if (user.role !== 'admin')

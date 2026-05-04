@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Admin - Bookings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('navbar') %>
+  <div class="container py-5">
+    <div class="page-header mb-5">
+      <h1 class="page-title">📋 Bookings Management</h1>
+      <p class="page-subtitle">Review and manage all customer bookings</p>
+    </div>
+    <% if (bookings && bookings.length) { %>
+      <div class="admin-bookings-grid">
+        <% bookings.forEach(b => { %>
+          <div class="admin-booking-card" id="row-<%= b._id || b.id %>">
+            <div class="booking-card-header">
+              <h5><%= b.service ? b.service.name : 'Service' %></h5>
+              <span id="status-<%= b._id || b.id %>" class="badge bg-<%= b.status === 'approved' ? 'success' : b.status === 'rejected' ? 'danger' : 'warning' %>"><%= b.status %></span>
+            </div>
+            <div class="booking-card-body">
+              <div class="booking-detail">
+                <span class="label">Customer:</span>
+                <span class="value"><%= b.customerName %></span>
+              </div>
+              <div class="booking-detail">
+                <span class="label">Date:</span>
+                <span class="value"><%= new Date(b.date).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) %></span>
+              </div>
+              <div class="booking-detail">
+                <span class="label">Time:</span>
+                <span class="value"><%= b.timeSlot %></span>
+              </div>
+              <div class="booking-detail">
+                <span class="label">Contact:</span>
+                <span class="value"><%= b.contactMethod === 'email' ? b.email : b.phone %></span>
+              </div>
+            </div>
+            <div class="booking-card-footer">
+              <% if (b.status === 'pending') { %>
+                <button class="btn btn-success btn-sm me-2" onclick="action('<%= b._id || b.id %>','approve')">✅ Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="action('<%= b._id || b.id %>','reject')">❌ Reject</button>
+              <% } else { %>
+                <small class="text-muted">Processed by: <%= b.approvedBy ? b.approvedBy.email : '—' %></small>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h4>No bookings yet</h4>
+        <p>Bookings will appear here when customers make reservations.</p>
+      </div>
+    <% } %>
+  </div>
+
+  <script>
+    async function action(id, act) {
+      const url = `/admin/bookings/${id}/${act}`;
+      try {
+        const res = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } });
+        const json = await res.json();
+        if (res.ok) {
+          document.getElementById('status-' + id).innerHTML = '<span class="badge bg-' + (json.booking.status === 'approved' ? 'success' : 'danger') + '">' + json.booking.status + '</span>';
+        } else {
+          alert(json.error || 'Failed');
+        }
+      } catch (err) {
+        alert('Error');
+      }
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Service</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('navbar') %>
+  <main>
+    <div class="container booking-page py-5">
+      <div class="page-header mb-4">
+        <div>
+          <h1 class="page-title">Checkout</h1>
+          <p class="page-subtitle mb-0">Confirm your service details and choose a payment option for your booking.</p>
+        </div>
+        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary">Secure booking</div>
+      </div>
+
+      <div class="row gx-4 gy-4">
+        <div class="col-lg-7">
+          <div class="card checkout-panel shadow-sm">
+            <div class="card-body">
+              <% if (error) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                  <strong>❌ Error:</strong> <%= error %>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+              <% } %>
+
+              <div class="checkout-stepper mb-4">
+                <div class="step active">
+                  <span>1</span>
+                  <small>Details</small>
+                </div>
+                <div class="step active">
+                  <span>2</span>
+                  <small>Payment</small>
+                </div>
+                <div class="step">
+                  <span>3</span>
+                  <small>Confirm</small>
+                </div>
+              </div>
+
+              <form method="POST" action="/booking" id="bookingForm" novalidate>
+                <input type="hidden" name="serviceId" value="<%= serviceId || '' %>">
+                <input type="hidden" id="paymentMethod" name="paymentMethod" value="<%= typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash' %>">
+
+                <section class="section-card mb-4">
+                  <h3 class="section-title">Booking details</h3>
+                  <div class="row gx-3 gy-3">
+                    <div class="col-md-6">
+                      <label for="customerName" class="form-label">Name</label>
+                      <input type="text" class="form-control" id="customerName" name="customerName" value="<%= customerName || '' %>" placeholder="Your full name" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="date" class="form-label">Date</label>
+                      <input type="date" class="form-control" id="date" name="date" value="<%= date || '' %>" required>
+                    </div>
+                    <div class="col-md-12">
+                      <label class="form-label d-block">Contact</label>
+                      <div class="contact-options">
+                        <label class="radio-card">
+                          <input class="form-check-input" type="radio" name="contactMethod" id="emailRadio" value="email" <% if (contactMethod === 'email') { %>checked<% } %> required>
+                          <div class="radio-card-body">
+                            <strong>Email</strong>
+                            <span>Receive booking updates by email</span>
+                          </div>
+                        </label>
+                        <label class="radio-card">
+                          <input class="form-check-input" type="radio" name="contactMethod" id="phoneRadio" value="phone" <% if (contactMethod === 'phone') { %>checked<% } %>>
+                          <div class="radio-card-body">
+                            <strong>Phone</strong>
+                            <span>Receive booking updates by SMS or call</span>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-12 email-field" id="emailField" style="<%= contactMethod === 'email' ? 'display:block;' : 'display:none;' %>">
+                      <label for="email" class="form-label">Email address</label>
+                      <input type="email" class="form-control" id="email" name="email" value="<%= email || '' %>" placeholder="you@example.com">
+                    </div>
+                    <div class="col-12 phone-field" id="phoneField" style="<%= contactMethod === 'phone' ? 'display:block;' : 'display:none;' %>">
+                      <label for="phone" class="form-label">Phone number</label>
+                      <input type="tel" class="form-control" id="phone" name="phone" value="<%= phone || '' %>" placeholder="10-digit number" pattern="[0-9]{10}">
+                    </div>
+                    <div class="col-12">
+                      <label for="timeSlot" class="form-label">Preferred time</label>
+                      <select class="form-select" id="timeSlot" name="timeSlot" required>
+                        <option value="">Select time</option>
+                        <option value="morning" <% if (timeSlot === 'morning') { %>selected<% } %>>Morning (9-12)</option>
+                        <option value="afternoon" <% if (timeSlot === 'afternoon') { %>selected<% } %>>Afternoon (12-4)</option>
+                        <option value="evening" <% if (timeSlot === 'evening') { %>selected<% } %>>Evening (4-8)</option>
+                      </select>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="section-card mb-4">
+                  <h3 class="section-title">Your provider team</h3>
+                  <p class="text-muted mb-3">These specialists are ready to serve your selected service.</p>
+                  <div class="row g-3">
+                    <% if (service && service.providers && service.providers.length) { %>
+                      <% service.providers.forEach(provider => { %>
+                        <div class="col-md-6">
+                          <div class="provider-card p-3 rounded-4 border">
+                            <strong><%= provider.name %></strong>
+                            <div class="text-muted small"><%= provider.note %></div>
+                            <a href="tel:<%= provider.phone %>" class="provider-phone mt-2 d-inline-flex align-items-center">📞 <%= provider.phone %></a>
+                          </div>
+                        </div>
+                      <% }) %>
+                    <% } else { %>
+                      <div class="col-12">
+                        <p class="text-muted">We will assign a nearby expert for your booking and share their contact soon.</p>
+                      </div>
+                    <% } %>
+                  </div>
+                </section>
+
+                <section class="section-card mb-4">
+                  <h3 class="section-title">Payment method</h3>
+                  <div class="payment-options">
+                    <button type="button" class="payment-option-card <% if ((typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash') !== 'upi') { %>active<% } %>" data-value="cash">
+                      <div>
+                        <strong>Cash on service</strong>
+                        <p class="small">Pay in cash after job completion.</p>
+                      </div>
+                    </button>
+                    <button type="button" class="payment-option-card <% if ((typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash') === 'upi') { %>active<% } %>" data-value="upi">
+                      <div>
+                        <strong>UPI</strong>
+                        <p class="small">Quick payment using your UPI ID.</p>
+                      </div>
+                    </button>
+                  </div>
+                  <div class="payment-summary" id="paymentSummary">
+                    <% if ((typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash') === 'upi') { %>
+                      UPI selected. Enter your UPI ID below to confirm payment details.
+                    <% } else { %>
+                      Cash selected. No online payment is required now.
+                    <% } %>
+                  </div>
+                </section>
+
+                <section class="section-card mb-4 upi-section" id="upiSection" style="<%= paymentMethod === 'upi' ? 'display:block;' : 'display:none;' %>">
+                  <h3 class="section-title">UPI details</h3>
+                  <div class="mb-3">
+                    <label for="upiId" class="form-label">UPI ID</label>
+                    <input type="text" class="form-control" id="upiId" name="upiId" value="<%= upiId || '' %>" placeholder="example@upi">
+                    <div class="form-text">Enter your UPI ID to simulate checkout.</div>
+                  </div>
+                </section>
+
+                <div class="d-grid gap-3 mt-3">
+                  <button type="submit" class="btn btn-success btn-lg checkout-btn">✅ Confirm Booking</button>
+                  <a href="/services" class="btn btn-outline-secondary btn-lg">Choose another service</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <aside class="summary-card shadow-sm">
+            <div class="summary-heading d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h2 class="summary-title">Order summary</h2>
+                <p class="summary-subtitle mb-0">Review the booking details before confirming.</p>
+              </div>
+              <span class="badge rounded-pill bg-success bg-opacity-15 text-success">Ready</span>
+            </div>
+
+            <div class="summary-block">
+              <div class="summary-label">Service</div>
+              <div class="summary-value"><strong><%= service ? service.name : 'No service selected' %></strong></div>
+            </div>
+            <div class="summary-block">
+              <div class="summary-label">Price</div>
+              <div class="summary-value">₹<%= service ? service.price : 0 %></div>
+            </div>
+            <div class="summary-block">
+              <div class="summary-label">Date</div>
+              <div class="summary-value" id="summaryDate"><%= date || 'Not selected' %></div>
+            </div>
+            <div class="summary-block">
+              <div class="summary-label">Time slot</div>
+              <div class="summary-value" id="summaryTime"><%= timeSlot || 'Not selected' %></div>
+            </div>
+            <div class="summary-block">
+              <div class="summary-label">Contact</div>
+              <div class="summary-value" id="summaryContact"><%= contactMethod === 'email' ? email || 'Not set' : phone || 'Not set' %></div>
+            </div>
+            <div class="summary-block">
+              <div class="summary-label">Payment</div>
+              <div class="summary-value" id="summaryPayment"><%= (typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash') === 'upi' ? 'UPI' : 'Cash' %></div>
+            </div>
+            <div class="summary-block">
+              <div>
+                <div class="summary-label">Provider</div>
+                <small class="text-muted">Direct contact for this service</small>
+              </div>
+              <div class="summary-value">
+                <% if (service && service.providers && service.providers.length) { %>
+                  <div class="text-end">
+                    <strong><%= service.providers[0].name %></strong><br>
+                    <a href="tel:<%= service.providers[0].phone %>" class="provider-phone">📞 <%= service.providers[0].phone %></a>
+                  </div>
+                <% } else { %>
+                  <span>Nearest expert will be assigned.</span>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="summary-total mt-4 p-4 rounded-4 bg-primary bg-opacity-10">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="fw-semibold">Total</span>
+                <span class="fw-semibold">₹<%= service ? service.price : 0 %></span>
+              </div>
+              <p class="mb-0 text-muted">This is the amount you will confirm for the selected service.</p>
+            </div>
+
+            <div class="secure-footer mt-4 p-3 rounded-4 bg-white border">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="secure-icon">🔒</span>
+                <strong>Safe & simple checkout</strong>
+              </div>
+              <p class="mb-0">No payment is processed now. This page only confirms the booking and payment option.</p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="bg-dark text-white text-center py-3 mt-5">
+    <p class="m-0">&copy; 2025 Home Service Booking</p>
+  </footer>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const emailRadio = document.getElementById('emailRadio');
+      const phoneRadio = document.getElementById('phoneRadio');
+      const emailField = document.getElementById('emailField');
+      const phoneField = document.getElementById('phoneField');
+      const paymentButtons = document.querySelectorAll('.payment-option-card');
+      const paymentMethodInput = document.getElementById('paymentMethod');
+      const upiSection = document.getElementById('upiSection');
+      const paymentSummary = document.getElementById('paymentSummary');
+      const submitBtn = document.querySelector('#bookingForm button[type="submit"]');
+      const bookingForm = document.getElementById('bookingForm');
+      const dateInput = document.getElementById('date');
+      const timeSlotInput = document.getElementById('timeSlot');
+      const emailInput = document.getElementById('email');
+      const phoneInput = document.getElementById('phone');
+      const summaryDate = document.getElementById('summaryDate');
+      const summaryTime = document.getElementById('summaryTime');
+      const summaryContact = document.getElementById('summaryContact');
+      const summaryPayment = document.getElementById('summaryPayment');
+
+      function updateFields() {
+        if (emailRadio && emailRadio.checked) {
+          emailField.style.display = 'block';
+          phoneField.style.display = 'none';
+        } else if (phoneRadio && phoneRadio.checked) {
+          emailField.style.display = 'none';
+          phoneField.style.display = 'block';
+        }
+        updateSummary();
+      }
+
+      function updatePaymentSelection(method) {
+        paymentButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.value === method);
+        });
+        paymentMethodInput.value = method;
+        upiSection.style.display = method === 'upi' ? 'block' : 'none';
+        if (paymentSummary) {
+          paymentSummary.textContent = method === 'upi'
+            ? 'UPI selected. Enter your UPI ID below and confirm payment details.'
+            : 'Cash selected. No online payment is required now.';
+        }
+        if (submitBtn) {
+          submitBtn.textContent = method === 'upi' ? '✅ Confirm & Pay with UPI' : '✅ Confirm Booking';
+        }
+        updateSummary();
+      }
+
+      function updateSummary() {
+        if (summaryDate) summaryDate.textContent = dateInput.value || 'Not selected';
+        if (summaryTime) summaryTime.textContent = timeSlotInput.value || 'Not selected';
+        if (summaryContact) {
+          const contactMode = emailRadio.checked ? 'email' : phoneRadio.checked ? 'phone' : '';
+          const contactValue = contactMode === 'email' ? (emailInput?.value || 'Not set') : (phoneInput?.value || 'Not set');
+          summaryContact.textContent = contactValue;
+        }
+        if (summaryPayment) summaryPayment.textContent = paymentMethodInput.value === 'upi' ? 'UPI' : 'Cash';
+      }
+
+      if (emailRadio) emailRadio.addEventListener('change', updateFields);
+      if (phoneRadio) phoneRadio.addEventListener('change', updateFields);
+      if (dateInput) dateInput.addEventListener('change', updateSummary);
+      if (timeSlotInput) timeSlotInput.addEventListener('change', updateSummary);
+      if (emailInput) emailInput.addEventListener('input', updateSummary);
+      if (phoneInput) phoneInput.addEventListener('input', updateSummary);
+
+      paymentButtons.forEach(btn => {
+        btn.addEventListener('click', () => updatePaymentSelection(btn.dataset.value));
+      });
+
+      if (bookingForm) {
+        bookingForm.addEventListener('submit', function(event) {
+          if (paymentMethodInput.value === 'upi') {
+            const upiId = document.getElementById('upiId')?.value || '';
+            if (!upiId.trim()) {
+              event.preventDefault();
+              alert('Please enter your UPI ID before confirming payment.');
+              document.getElementById('upiId')?.focus();
+            }
+          }
+        });
+      }
+
+      const initialPaymentMethod = paymentMethodInput.value || 'cash';
+      updatePaymentSelection(initialPaymentMethod);
+      updateFields();
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

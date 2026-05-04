@@ -79,11 +79,11 @@
                         </label>
                       </div>
                     </div>
-                    <div class="col-12 email-field" id="emailField" style="<%= contactMethod === 'email' ? 'display:block;' : 'display:none;' %>">
+                    <div class="col-12 email-field <%= contactMethod === 'email' ? 'd-block' : 'd-none' %>" id="emailField">
                       <label for="email" class="form-label">Email address</label>
                       <input type="email" class="form-control" id="email" name="email" value="<%= email || '' %>" placeholder="you@example.com">
                     </div>
-                    <div class="col-12 phone-field" id="phoneField" style="<%= contactMethod === 'phone' ? 'display:block;' : 'display:none;' %>">
+                    <div class="col-12 phone-field <%= contactMethod === 'phone' ? 'd-block' : 'd-none' %>" id="phoneField">
                       <label for="phone" class="form-label">Phone number</label>
                       <input type="tel" class="form-control" id="phone" name="phone" value="<%= phone || '' %>" placeholder="10-digit number" pattern="[0-9]{10}">
                     </div>
@@ -146,7 +146,7 @@
                   </div>
                 </section>
 
-                <section class="section-card mb-4 upi-section" id="upiSection" style="<%= paymentMethod === 'upi' ? 'display:block;' : 'display:none;' %>">
+                <section class="section-card mb-4 upi-section <%= paymentMethod === 'upi' ? 'd-block' : 'd-none' %>" id="upiSection">
                   <h3 class="section-title">UPI details</h3>
                   <div class="mb-3">
                     <label for="upiId" class="form-label">UPI ID</label>
@@ -293,9 +293,13 @@
         if (summaryDate) summaryDate.textContent = dateInput.value || 'Not selected';
         if (summaryTime) summaryTime.textContent = timeSlotInput.value || 'Not selected';
         if (summaryContact) {
-          const contactMode = emailRadio.checked ? 'email' : phoneRadio.checked ? 'phone' : '';
-          const contactValue = contactMode === 'email' ? (emailInput?.value || 'Not set') : (phoneInput?.value || 'Not set');
-          summaryContact.textContent = contactValue;
+          if (emailRadio.checked) {
+            summaryContact.textContent = emailInput?.value || 'Not set';
+          } else if (phoneRadio.checked) {
+            summaryContact.textContent = phoneInput?.value || 'Not set';
+          } else {
+            summaryContact.textContent = 'Not selected';
+          }
         }
         if (summaryPayment) summaryPayment.textContent = paymentMethodInput.value === 'upi' ? 'UPI' : 'Cash';
       }
@@ -327,6 +331,10 @@
       const initialPaymentMethod = paymentMethodInput.value || 'cash';
       updatePaymentSelection(initialPaymentMethod);
       updateFields();
+      if (!emailRadio.checked && !phoneRadio.checked) {
+        emailRadio.checked = true;
+        updateFields();
+      }
     });
   </script>
 

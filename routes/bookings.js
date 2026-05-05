@@ -48,16 +48,8 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid phone' });
     }
 
-    const bookingPayload = dbType === 'postgres' ? {
-      serviceId: serviceId,
-      customerName,
-      date: new Date(date),
-      contactMethod,
-      amount: service.price,
-      email: contactMethod === 'email' ? email : undefined,
-      phone: contactMethod === 'phone' ? phone : undefined,
-      timeSlot
-    } : {
+    // Prepare payloads for both databases
+    const mongoPayload = {
       service: serviceId,
       customerName,
       date: new Date(date),
@@ -66,9 +58,60 @@ router.post('/', auth, async (req, res) => {
       phone: contactMethod === 'phone' ? phone : undefined,
       timeSlot
     };
-    const booking = await Booking.create(bookingPayload);
-    // booking already saved when created for both Mongoose and Sequelize
-    const populated = (dbType === 'postgres') ? await Booking.findById(booking._id || booking.id) : await Booking.findById(booking._id).populate('service');
+
+    // For PostgreSQL, find the service by name to get the SQL serviceId
+    let sqlServiceId = null;
+    try {
+      const sqlModels = require('../models_sql');
+      const sqlService = await sqlModels.Service.findOne({ where: { name: service.name } });
+      if (sqlService) {
+        sqlServiceId = sqlService.id;
+      }
+    } catch (err) {
+      console.error('Error finding SQL service:', err);
+    }
+
+    const sqlPayload = {
+      serviceId: sqlServiceId,
+      customerName,
+      date: new Date(date),
+      contactMethod,
+      amount: service.price,
+      email: contactMethod === 'email' ? email : undefined,
+      phone: contactMethod === 'phone' ? phone : undefined,
+      timeSlot
+    };
+
+    // Save to both databases
+    let mongoBooking = null;
+    let sqlBooking = null;
+
+    try {
+      // Save to MongoDB
+      const MongoBooking = require('../models/booking');
+      mongoBooking = await MongoBooking.create(mongoPayload);
+    } catch (mongoErr) {
+      console.error('MongoDB save error:', mongoErr);
+    }
+
+    try {
+      // Save to PostgreSQL
+      const sqlModels = require('../models_sql');
+      if (sqlServiceId) {
+        sqlBooking = await sqlModels.Booking.create(sqlPayload);
+      }
+    } catch (sqlErr) {
+      console.error('PostgreSQL save error:', sqlErr);
+    }
+
+    // Use the booking from the primary DB for response
+    const primaryBooking = dbType === 'postgres' ? sqlBooking : mongoBooking;
+    if (!primaryBooking) {
+      return res.status(500).json({ error: 'Failed to save booking to any database' });
+    }
+
+    // Populate for response
+    const populated = (dbType === 'postgres') ? await Booking.findById(primaryBooking._id || primaryBooking.id) : await Booking.findById(primaryBooking._id).populate('service');
 
     res.status(201).json(populated);
   } catch (err) {

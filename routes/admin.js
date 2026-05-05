@@ -99,29 +99,43 @@ router.post('/bookings/:id/approve', auth, async (req, res) => {
 
     const id = req.params.id;
 
-    if (dbType === 'postgres') {
-      const { Booking: BookingModel } = sqlRaw;
-      const b = await BookingModel.findByPk(id);
-      if (!b) return res.status(404).json({ error: 'Booking not found' });
-
-      b.status = 'approved';
-      b.approvedById = req.user.id || req.user._id;
-      b.approvedAt = new Date();
-      await b.save();
-
-      return res.json({ success: true, booking: b.toJSON() });
+    // Update PostgreSQL
+    let sqlBooking = null;
+    try {
+      if (sqlRaw) {
+        const { Booking: BookingModel } = sqlRaw;
+        sqlBooking = await BookingModel.findByPk(id);
+        if (sqlBooking) {
+          sqlBooking.status = 'approved';
+          sqlBooking.approvedById = req.user.id || req.user._id;
+          sqlBooking.approvedAt = new Date();
+          await sqlBooking.save();
+        }
+      }
+    } catch (sqlErr) {
+      console.error('SQL approve error:', sqlErr);
     }
 
-    // MongoDB
-    const b = await Booking.findById(id);
-    if (!b) return res.status(404).json({ error: 'Booking not found' });
+    // Update MongoDB
+    let mongoBooking = null;
+    try {
+      mongoBooking = await Booking.findById(id);
+      if (mongoBooking) {
+        mongoBooking.status = 'approved';
+        mongoBooking.approvedBy = req.user._id || req.user.id;
+        mongoBooking.approvedAt = new Date();
+        await mongoBooking.save();
+      }
+    } catch (mongoErr) {
+      console.error('Mongo approve error:', mongoErr);
+    }
 
-    b.status = 'approved';
-    b.approvedBy = req.user._id || req.user.id;
-    b.approvedAt = new Date();
-    await b.save();
+    if (!sqlBooking && !mongoBooking) {
+      return res.status(404).json({ error: 'Booking not found in any database' });
+    }
 
-    res.json({ success: true, booking: b });
+    const responseBooking = sqlBooking || mongoBooking;
+    res.json({ success: true, booking: responseBooking });
 
   } catch (err) {
     console.error('Approve error:', err);
@@ -137,29 +151,43 @@ router.post('/bookings/:id/reject', auth, async (req, res) => {
 
     const id = req.params.id;
 
-    if (dbType === 'postgres') {
-      const { Booking: BookingModel } = sqlRaw;
-      const b = await BookingModel.findByPk(id);
-      if (!b) return res.status(404).json({ error: 'Booking not found' });
-
-      b.status = 'rejected';
-      b.approvedById = req.user.id || req.user._id;
-      b.approvedAt = new Date();
-      await b.save();
-
-      return res.json({ success: true, booking: b.toJSON() });
+    // Update PostgreSQL
+    let sqlBooking = null;
+    try {
+      if (sqlRaw) {
+        const { Booking: BookingModel } = sqlRaw;
+        sqlBooking = await BookingModel.findByPk(id);
+        if (sqlBooking) {
+          sqlBooking.status = 'rejected';
+          sqlBooking.approvedById = req.user.id || req.user._id;
+          sqlBooking.approvedAt = new Date();
+          await sqlBooking.save();
+        }
+      }
+    } catch (sqlErr) {
+      console.error('SQL reject error:', sqlErr);
     }
 
-    // MongoDB
-    const b = await Booking.findById(id);
-    if (!b) return res.status(404).json({ error: 'Booking not found' });
+    // Update MongoDB
+    let mongoBooking = null;
+    try {
+      mongoBooking = await Booking.findById(id);
+      if (mongoBooking) {
+        mongoBooking.status = 'rejected';
+        mongoBooking.approvedBy = req.user._id || req.user.id;
+        mongoBooking.approvedAt = new Date();
+        await mongoBooking.save();
+      }
+    } catch (mongoErr) {
+      console.error('Mongo reject error:', mongoErr);
+    }
 
-    b.status = 'rejected';
-    b.approvedBy = req.user._id || req.user.id;
-    b.approvedAt = new Date();
-    await b.save();
+    if (!sqlBooking && !mongoBooking) {
+      return res.status(404).json({ error: 'Booking not found in any database' });
+    }
 
-    res.json({ success: true, booking: b });
+    const responseBooking = sqlBooking || mongoBooking;
+    res.json({ success: true, booking: responseBooking });
 
   } catch (err) {
     console.error('Reject error:', err);

@@ -1,0 +1,268 @@
+/* Responsive Media Queries */
+
+/* Mobile & Tablets (below 768px) */
+@media (max-width: 767.98px) {
+  body {
+    padding-top: 60px;
+  }
+
+  .home-hero {
+    padding: 2rem 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .home-hero h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .home-hero p {
+    font-size: 1rem;
+  }
+
+  .home-cta-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .home-cta-buttons .btn {
+    width: 100%;
+    padding: 0.9rem 1.5rem;
+  }
+
+  .home-features .row {
+    gap: 1rem;
+  }
+
+  .feature-item {
+    padding: 1.5rem 1rem;
+  }
+
+  .feature-item-icon {
+    font-size: 2rem;
+  }
+
+  .feature-item h5 {
+    font-size: 1.1rem;
+  }
+
+  .feature-item p {
+    font-size: 0.9rem;
+  }
+
+  .hero-section {
+    height: 350px;
+  }
+
+  .hero-title {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-btn {
+    padding: 0.7rem 1.5rem;
+    font-size: 0.85rem;
+  }
+
+  .section-heading {
+    font-size: 1.6rem;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .service-card {
+    padding-left: 1rem;
+  }
+
+  .service-title {
+    font-size: 1.1rem;
+  }
+
+  .service-price {
+    font-size: 1.5rem;
+  }
+
+  .feature-card {
+    padding: 1.25rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .feature-card-icon {
+    font-size: 2.2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .feature-title {
+    font-size: 1rem;
+  }
+
+  .review-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .booking-card {
+    padding: 1rem 0;
+  }
+
+  .nav-link {
+    margin-left: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .navbar-brand {
+    font-size: 1.1rem;
+  }
+
+  .confirmation-box {
+    padding: 1.5rem;
+  }
+
+  .confirmation-section-title {
+    font-size: 0.95rem;
+  }
+
+  .confirmation-row {
+    padding: 0.6rem 0;
+  }
+
+  .page-header {
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+  }
+
+  .services-grid {
+    gap: 1.5rem;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    word-break: break-word;
+  }
+}
+
+/* Small Mobile (below 576px) */
+@media (max-width: 575.98px) {
+  .hero-section {
+    height: 280px;
+    margin-bottom: 0;
+  }
+
+  .hero-title {
+    font-size: 1.4rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .hero-btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.8rem;
+  }
+
+  .section-heading {
+    font-size: 1.4rem;
+  }
+
+  .page-title {
+    font-size: 1.3rem;
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .service-card {
+    padding-left: 0.75rem;
+  }
+
+  .booking-card {
+    padding: 0.75rem 0;
+  }
+
+  .booking-service {
+    font-size: 1rem;
+  }
+
+  .booking-row {
+    font-size: 0.85rem;
+  }
+
+  .feature-icon {
+    font-size: 2rem;
+  }
+
+  .review-text {
+    font-size: 0.9rem;
+  }
+
+  .confirmation-box {
+    border-radius: 6px;
+  }
+
+  .navbar {
+    padding: 0.5rem 0;
+  }
+
+  .nav-link {
+    margin-left: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .navbar-brand {
+    font-size: 1rem;
+  }
+
+  .page-header {
+    padding: 0.75rem 0;
+  }
+}
+
+/* Tablet & Desktop (above 768px) */
+@media (min-width: 768px) {
+  .contact-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .services-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+/* Large Desktop (above 1200px) */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1200px;
+  }
+
+  .services-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}

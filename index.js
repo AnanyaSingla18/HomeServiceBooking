@@ -75,11 +75,10 @@ if (hasPgConfig) {
     sqlModels.sequelize.authenticate()
       .then(() => console.log('Postgres (Sequelize) connected'))
       .catch(err => console.error('Postgres connect error:', err));
-    if (process.env.PG_SYNC === 'true') {
-      sqlModels.sync({ force: false })
-        .then(() => console.log('Postgres tables synced'))
-        .catch(err => console.error('Postgres sync error:', err));
-    }
+    // Sync models: alter:true adds new columns without dropping existing data
+    sqlModels.sync({ alter: true, force: false })
+      .then(() => console.log('Postgres tables synced'))
+      .catch(err => console.error('Postgres sync error:', err));
   } catch (err) {
     console.warn('Postgres not setup:', err.message);
   }
@@ -175,8 +174,8 @@ app.get('/booking', async (req, res) => {
       email: '',
       phone: '',
       timeSlot: '',
-      paymentMethod: 'cash',
-      upiId: ''
+      upiId: '',
+      paymentMethod: 'cash'
     });
   } catch (err) {
     res.render('booking', {
@@ -189,37 +188,29 @@ app.get('/booking', async (req, res) => {
       email: '',
       phone: '',
       timeSlot: '',
-      paymentMethod: 'cash',
-      upiId: ''
+      upiId: '',
+      paymentMethod: 'cash'
     });
   }
 });
 
 app.post('/booking', async (req, res) => {
   try {
-    const { serviceId, customerName, date, contactMethod, email, phone, timeSlot } = req.body;
+    const { serviceId, customerName, date, contactMethod, timeSlot } = req.body;
 
     if (!serviceId || !serviceId.trim()) {
-      return res.render('booking', { service: null, serviceId: '', error: 'Service ID required', customerName, date, contactMethod, email, phone, timeSlot, paymentMethod: 'cash', upiId: '' });
+      return res.render('booking', { service: null, serviceId: '', error: 'Service ID required', customerName, date, contactMethod, email: '', phone: '', upiId: '', timeSlot, paymentMethod: 'cash' });
     }
 
     if (!customerName || !date || !contactMethod || !timeSlot) {
       const service = await Service.findById(serviceId);
-      return res.render('booking', { service, serviceId, error: 'Missing required fields', customerName, date, contactMethod, email, phone, timeSlot, paymentMethod: req.body?.paymentMethod || 'cash', upiId: req.body?.upiId || '' });
+      return res.render('booking', { service, serviceId, error: 'Missing required fields', customerName, date, contactMethod, email: '', phone: '', upiId: '', timeSlot, paymentMethod: req.body?.paymentMethod || 'cash' });
     }
 
     let service = await Service.findById(serviceId);
     if (service) service = enrichService(service);
     if (!service) {
-      return res.render('booking', { service: null, serviceId, error: 'Service not found', customerName, date, contactMethod, email, phone, timeSlot, paymentMethod: req.body?.paymentMethod || 'cash', upiId: req.body?.upiId || '' });
-    }
-
-    if (contactMethod === 'email' && (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
-      return res.render('booking', { service, serviceId, error: 'Invalid email', customerName, date, contactMethod, email, phone, timeSlot, paymentMethod: req.body?.paymentMethod || 'cash', upiId: req.body?.upiId || '' });
-    }
-
-    if (contactMethod === 'phone' && (!phone || !/^[0-9]{10}$/.test(phone))) {
-      return res.render('booking', { service, serviceId, error: 'Invalid phone', customerName, date, contactMethod, email, phone, timeSlot, paymentMethod: req.body?.paymentMethod || 'cash', upiId: req.body?.upiId || '' });
+      return res.render('booking', { service: null, serviceId, error: 'Service not found', customerName, date, contactMethod, email: '', phone: '', upiId: '', timeSlot, paymentMethod: req.body?.paymentMethod || 'cash' });
     }
 
     // Prepare payloads for both databases
@@ -228,10 +219,17 @@ app.post('/booking', async (req, res) => {
       customerName,
       date: new Date(date),
       contactMethod,
-      email: contactMethod === 'email' ? email : undefined,
-      phone: contactMethod === 'phone' ? phone : undefined,
+      email: req.body.email || null,
+      phone: req.body.phone || null,
       timeSlot
     };
+
+    // Assign a random provider from the available providers
+    const providers = getProvidersForService(service.name);
+    const assignedProvider = providers[Math.floor(Math.random() * providers.length)];
+    mongoPayload.providerName = assignedProvider.name;
+    mongoPayload.providerPhone = assignedProvider.phone;
+    mongoPayload.providerNote = assignedProvider.note;
 
     // For PostgreSQL, find the service by name to get the SQL serviceId
     let sqlServiceId = null;
@@ -250,10 +248,13 @@ app.post('/booking', async (req, res) => {
       customerName,
       date: new Date(date),
       contactMethod,
+      email: req.body.email || null,
+      phone: req.body.phone || null,
       amount: service.price,
-      email: contactMethod === 'email' ? email : undefined,
-      phone: contactMethod === 'phone' ? phone : undefined,
-      timeSlot
+      timeSlot,
+      providerName: assignedProvider.name,
+      providerPhone: assignedProvider.phone,
+      providerNote: assignedProvider.note
     };
 
     // Save to both databases
@@ -314,9 +315,9 @@ app.post('/booking', async (req, res) => {
       contactMethod: req.body?.contactMethod || '',
       email: req.body?.email || '',
       phone: req.body?.phone || '',
+      upiId: req.body?.upiId || '',
       timeSlot: req.body?.timeSlot || '',
-      paymentMethod: req.body?.paymentMethod || 'cash',
-      upiId: req.body?.upiId || ''
+      paymentMethod: req.body?.paymentMethod || 'cash'
     });
   }
 });

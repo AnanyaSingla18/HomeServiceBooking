@@ -80,11 +80,11 @@
                         </label>
                       </div>
                     </div>
-                    <div class="col-12 email-field <%= contactMethod === 'email' ? 'd-block' : 'd-none' %>" id="emailField">
+                    <div class="col-12 email-field d-block" id="emailField">
                       <label for="email" class="form-label">Email address</label>
                       <input type="email" class="form-control" id="email" name="email" value="<%= email || '' %>" placeholder="you@example.com">
                     </div>
-                    <div class="col-12 phone-field <%= contactMethod === 'phone' ? 'd-block' : 'd-none' %>" id="phoneField">
+                    <div class="col-12 phone-field d-none" id="phoneField">
                       <label for="phone" class="form-label">Phone number</label>
                       <input type="tel" class="form-control" id="phone" name="phone" value="<%= phone || '' %>" placeholder="10-digit number" pattern="[0-9]{10}">
                     </div>
@@ -125,13 +125,13 @@
                 <section class="section-card mb-4">
                   <h3 class="section-title">Payment method</h3>
                   <div class="payment-options">
-                    <button type="button" class="payment-option-card <% if ((typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash') !== 'upi') { %>active<% } %>" data-value="cash">
+                    <button type="button" class="payment-option-card active" data-value="cash">
                       <div>
                         <strong>Cash on service</strong>
                         <p class="small">Pay in cash after job completion.</p>
                       </div>
                     </button>
-                    <button type="button" class="payment-option-card <% if ((typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash') === 'upi') { %>active<% } %>" data-value="upi">
+                    <button type="button" class="payment-option-card" data-value="upi">
                       <div>
                         <strong>UPI</strong>
                         <p class="small">Quick payment using your UPI ID.</p>
@@ -139,11 +139,7 @@
                     </button>
                   </div>
                   <div class="payment-summary" id="paymentSummary">
-                    <% if ((typeof paymentMethod !== 'undefined' ? paymentMethod : 'cash') === 'upi') { %>
-                      UPI selected. Enter your UPI ID below to confirm payment details.
-                    <% } else { %>
-                      Cash selected. No online payment is required now.
-                    <% } %>
+                    Cash selected. No online payment is required now.
                   </div>
                 </section>
 
@@ -157,8 +153,8 @@
                 </section>
 
                 <div class="d-grid gap-3 mt-3">
-                  <button type="submit" class="btn btn-success btn-lg checkout-btn">✅ Confirm Booking</button>
-                  <a href="/services" class="btn btn-outline-secondary btn-lg">Choose another service</a>
+                  <button type="submit" class="btn btn-success checkout-btn">✅ Confirm Booking</button>
+                  <a href="/services" class="btn btn-outline-secondary">Choose another service</a>
                 </div>
               </form>
             </div>
@@ -192,8 +188,8 @@
               <div class="summary-value" id="summaryTime"><%= timeSlot || 'Not selected' %></div>
             </div>
             <div class="summary-block">
-              <div class="summary-label">Contact</div>
-              <div class="summary-value" id="summaryContact"><%= contactMethod === 'email' ? email || 'Not set' : phone || 'Not set' %></div>
+              <div class="summary-label">Contact method</div>
+              <div class="summary-value" id="summaryContact"><%= contactMethod === 'email' ? 'Email' : 'Phone' %></div>
             </div>
             <div class="summary-block">
               <div class="summary-label">Payment</div>
@@ -255,22 +251,22 @@
       const bookingForm = document.getElementById('bookingForm');
       const dateInput = document.getElementById('date');
       const timeSlotInput = document.getElementById('timeSlot');
-      const emailInput = document.getElementById('email');
-      const phoneInput = document.getElementById('phone');
       const summaryDate = document.getElementById('summaryDate');
       const summaryTime = document.getElementById('summaryTime');
-      const summaryContact = document.getElementById('summaryContact');
       const summaryPayment = document.getElementById('summaryPayment');
 
-      function updateFields() {
+      function toggleContactFields() {
         if (emailRadio && emailRadio.checked) {
-          emailField.style.display = 'block';
-          phoneField.style.display = 'none';
+          emailField.classList.remove('d-none');
+          emailField.classList.add('d-block');
+          phoneField.classList.remove('d-block');
+          phoneField.classList.add('d-none');
         } else if (phoneRadio && phoneRadio.checked) {
-          emailField.style.display = 'none';
-          phoneField.style.display = 'block';
+          emailField.classList.remove('d-block');
+          emailField.classList.add('d-none');
+          phoneField.classList.remove('d-none');
+          phoneField.classList.add('d-block');
         }
-        updateSummary();
       }
 
       function updatePaymentSelection(method) {
@@ -278,7 +274,8 @@
           btn.classList.toggle('active', btn.dataset.value === method);
         });
         paymentMethodInput.value = method;
-        upiSection.style.display = method === 'upi' ? 'block' : 'none';
+        upiSection.classList.toggle('d-none', method !== 'upi');
+        upiSection.classList.toggle('d-block', method === 'upi');
         if (paymentSummary) {
           paymentSummary.textContent = method === 'upi'
             ? 'UPI selected. Enter your UPI ID below and confirm payment details.'
@@ -293,24 +290,11 @@
       function updateSummary() {
         if (summaryDate) summaryDate.textContent = dateInput.value || 'Not selected';
         if (summaryTime) summaryTime.textContent = timeSlotInput.value || 'Not selected';
-        if (summaryContact) {
-          if (emailRadio.checked) {
-            summaryContact.textContent = emailInput?.value || 'Not set';
-          } else if (phoneRadio.checked) {
-            summaryContact.textContent = phoneInput?.value || 'Not set';
-          } else {
-            summaryContact.textContent = 'Not selected';
-          }
-        }
         if (summaryPayment) summaryPayment.textContent = paymentMethodInput.value === 'upi' ? 'UPI' : 'Cash';
       }
 
-      if (emailRadio) emailRadio.addEventListener('change', updateFields);
-      if (phoneRadio) phoneRadio.addEventListener('change', updateFields);
-      if (dateInput) dateInput.addEventListener('change', updateSummary);
-      if (timeSlotInput) timeSlotInput.addEventListener('change', updateSummary);
-      if (emailInput) emailInput.addEventListener('input', updateSummary);
-      if (phoneInput) phoneInput.addEventListener('input', updateSummary);
+      if (emailRadio) emailRadio.addEventListener('change', toggleContactFields);
+      if (phoneRadio) phoneRadio.addEventListener('change', toggleContactFields);
 
       paymentButtons.forEach(btn => {
         btn.addEventListener('click', () => updatePaymentSelection(btn.dataset.value));
@@ -329,13 +313,12 @@
         });
       }
 
+      if (dateInput) dateInput.addEventListener('change', updateSummary);
+      if (timeSlotInput) timeSlotInput.addEventListener('change', updateSummary);
+
       const initialPaymentMethod = paymentMethodInput.value || 'cash';
       updatePaymentSelection(initialPaymentMethod);
-      updateFields();
-      if (!emailRadio.checked && !phoneRadio.checked) {
-        emailRadio.checked = true;
-        updateFields();
-      }
+      toggleContactFields();
     });
   </script>
 

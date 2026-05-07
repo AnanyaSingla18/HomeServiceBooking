@@ -1577,11 +1577,26 @@ footer p {
 }
 
 .home-cta-buttons .btn {
-  font-size: 1rem;
-  padding: 0.95rem 2rem;
+  font-size: 0.95rem;
+  padding: 0.85rem 1.8rem;
   border-radius: 999px;
   transition: all 0.25s ease;
-  min-width: 190px;
+  min-width: 150px;
+}
+
+.btn-sm {
+  font-size: 0.85rem;
+  padding: 0.5rem 1.2rem;
+}
+
+.btn-lg {
+  font-size: 1rem;
+  padding: 0.95rem 2rem;
+}
+
+.checkout-btn {
+  font-size: 0.95rem;
+  padding: 0.9rem 1.8rem;
 }
 
 .home-cta-primary,

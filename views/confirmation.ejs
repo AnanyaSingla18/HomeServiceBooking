@@ -52,12 +52,29 @@
         </div>
 
         <!-- Provider Section -->
-        <% if (booking.service && booking.service.providers && booking.service.providers.length) { %>
-          <div class="confirmation-section">
-            <h5 class="confirmation-section-title">👨‍🔧 Your Service Provider</h5>
+        <div class="confirmation-section">
+          <h5 class="confirmation-section-title">👨‍🔧 Your Assigned Service Provider</h5>
+          <% if (booking.providerName) { %>
             <div class="confirmation-row">
               <span class="confirmation-label">Provider Name:</span>
-              <span class="confirmation-value"><%= booking.service.providers[0].name %></span>
+              <span class="confirmation-value"><strong><%= booking.providerName %></strong></span>
+            </div>
+            <div class="confirmation-row">
+              <span class="confirmation-label">Specialization:</span>
+              <span class="confirmation-value"><%= booking.providerNote %></span>
+            </div>
+            <div class="confirmation-row">
+              <span class="confirmation-label">Contact:</span>
+              <span class="confirmation-value">
+                <a href="tel:<%= booking.providerPhone %>" class="btn btn-sm btn-outline-primary">
+                  📞 <%= booking.providerPhone %>
+                </a>
+              </span>
+            </div>
+          <% } else if (booking.service && booking.service.providers && booking.service.providers.length) { %>
+            <div class="confirmation-row">
+              <span class="confirmation-label">Provider Name:</span>
+              <span class="confirmation-value"><strong><%= booking.service.providers[0].name %></strong></span>
             </div>
             <div class="confirmation-row">
               <span class="confirmation-label">Specialization:</span>
@@ -71,8 +88,13 @@
                 </a>
               </span>
             </div>
-          </div>
-        <% } %>
+          <% } else { %>
+            <div class="confirmation-row">
+              <span class="confirmation-label">Status:</span>
+              <span class="confirmation-value text-muted">A provider will be assigned to your booking shortly.</span>
+            </div>
+          <% } %>
+        </div>
 
         <!-- Status Section -->
         <div class="confirmation-section">

@@ -59,6 +59,25 @@ router.post('/', auth, async (req, res) => {
       timeSlot
     };
 
+    // Assign a random provider from the available providers
+    const getProvidersForService = (name = '') => {
+      const serviceProviderMap = [
+        { matcher: /plumb/i, providers: [{ name: 'Aarav Kumar', phone: '9876543210', note: 'Senior plumbing technician' }, { name: 'Neha Singh', phone: '9123456780', note: 'Pipe and leak specialist' }] },
+        { matcher: /electric|electrical/i, providers: [{ name: 'Rohan Verma', phone: '9988776655', note: 'Licensed electrician' }, { name: 'Priya Shah', phone: '9012345678', note: 'Fixture and wiring expert' }] },
+        { matcher: /clean/i, providers: [{ name: 'Sana Patel', phone: '9876501234', note: 'Home cleaning specialist' }, { name: 'Vikram Joshi', phone: '9765432109', note: 'Deep clean expert' }] },
+        { matcher: /ac|cooling/i, providers: [{ name: 'Kabir Singh', phone: '9988001122', note: 'AC service technician' }, { name: 'Maya Nair', phone: '9445566778', note: 'Cooling system expert' }] }
+      ];
+      const label = name.toString().toLowerCase();
+      const match = serviceProviderMap.find(item => item.matcher.test(label));
+      return match ? match.providers : [{ name: 'Nisha Patel', phone: '7012345678', note: 'Certified home service partner' }, { name: 'Rohan Mehta', phone: '7890123456', note: 'Local service coordinator' }];
+    };
+
+    const providers = getProvidersForService(service.name);
+    const assignedProvider = providers[Math.floor(Math.random() * providers.length)];
+    mongoPayload.providerName = assignedProvider.name;
+    mongoPayload.providerPhone = assignedProvider.phone;
+    mongoPayload.providerNote = assignedProvider.note;
+
     // For PostgreSQL, find the service by name to get the SQL serviceId
     let sqlServiceId = null;
     try {
@@ -79,7 +98,10 @@ router.post('/', auth, async (req, res) => {
       amount: service.price,
       email: contactMethod === 'email' ? email : undefined,
       phone: contactMethod === 'phone' ? phone : undefined,
-      timeSlot
+      timeSlot,
+      providerName: assignedProvider.name,
+      providerPhone: assignedProvider.phone,
+      providerNote: assignedProvider.note
     };
 
     // Save to both databases

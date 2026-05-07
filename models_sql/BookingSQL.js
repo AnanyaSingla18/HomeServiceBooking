@@ -44,7 +44,12 @@ Booking.init({
   // 🔥 REQUIRED FIELDS (MISSING BEFORE)
   serviceId: { type: DataTypes.INTEGER, allowNull: false },
   approvedById: { type: DataTypes.INTEGER, allowNull: true },
-  approvedAt: { type: DataTypes.DATE, allowNull: true }
+  approvedAt: { type: DataTypes.DATE, allowNull: true },
+  
+  // provider assignment
+  providerName: { type: DataTypes.STRING, allowNull: true },
+  providerPhone: { type: DataTypes.STRING, allowNull: true },
+  providerNote: { type: DataTypes.STRING, allowNull: true }
 
 }, { sequelize, modelName: 'Booking' });
 

@@ -9,6 +9,11 @@ const bookingSchema = new mongoose.Schema({
   phone: { type: String, trim: true },
   timeSlot: { type: String, required: true },
 
+  // provider assignment
+  providerName: { type: String, default: null },
+  providerPhone: { type: String, default: null },
+  providerNote: { type: String, default: null },
+
   // admin approval fields
   status: { type: String, enum: ['pending','approved','rejected'], default: 'pending' },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

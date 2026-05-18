@@ -9,13 +9,13 @@ const MONGO_URI = "mongodb://localhost:27017/homeService";
 mongoose.connect(MONGO_URI)
   .then(async () => {
     console.log("🌱 Starting seed with more services in INR...");
-    // Clear existing services (resets to fresh data)
+    
     await Service.deleteMany({});
     console.log("🗑️ Cleared old services");
 
-    // Insert 11 sample services (original 7 updated to INR + 4 new)
+    // Insert 11 sample services 
     const services = await Service.insertMany([
-      // Original Services (Updated to INR)
+      
       { name: "Plumbing", description: "Fix leaks, unclog drains, and install pipes", price: 1500 },
       { name: "Cleaning", description: "Deep house cleaning, dusting, and vacuuming", price: 2500 },
       { name: "Electrical", description: "Wiring repairs, outlet installations, and lighting setup", price: 2000 },

@@ -19,13 +19,15 @@
       <div class="services-grid">
         <% services.forEach(s => { %>
           <div class="service-card">
-            <div class="service-header">
-              <h4 class="service-title"><%= s.name %></h4>
+            <div class="service-top">
+              <div>
+                <h4 class="service-title"><%= s.name %></h4>
+                <p class="service-tag">Fast booking • Trusted local experts</p>
+              </div>
+              <div class="service-price">₹<%= s.price %></div>
             </div>
             <div class="service-body">
               <p class="service-description"><%= s.description %></p>
-              <div class="service-price">₹<%= s.price %></div>
-              
               <div class="service-providers mb-4">
                 <h6 class="providers-title">Available Providers</h6>
                 <% if (s.providers && s.providers.length) { %>
@@ -40,8 +42,9 @@
                   <div class="provider-item text-muted">Our nearest expert will contact you after booking.</div>
                 <% } %>
               </div>
-              
-              <a href="/booking?serviceId=<%= s._id || s.id %>" class="btn btn-primary w-100">Book Now</a>
+              <div class="service-footer">
+                <a href="/booking?serviceId=<%= s._id || s.id %>" class="btn btn-primary w-100 btn-lg">Book Now</a>
+              </div>
             </div>
           </div>
         <% }) %>

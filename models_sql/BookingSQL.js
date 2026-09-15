@@ -33,12 +33,15 @@ class Booking extends Model {}
 
 Booking.init({
   customerName: { type: DataTypes.STRING, allowNull: false },
+  address: { type: DataTypes.TEXT, allowNull: true },
+  serviceDescription: { type: DataTypes.TEXT, allowNull: true },
   date: { type: DataTypes.DATE, allowNull: false },
   contactMethod: { type: DataTypes.ENUM('email', 'phone'), allowNull: false },
   email: { type: DataTypes.STRING },
   phone: { type: DataTypes.STRING },
   timeSlot: { type: DataTypes.STRING, allowNull: false },
-  status: { type: DataTypes.ENUM('pending', 'approved', 'rejected'), defaultValue: 'pending' },
+  paymentMethod: { type: DataTypes.ENUM('cash', 'upi'), defaultValue: 'cash' },
+  status: { type: DataTypes.ENUM('pending', 'approved', 'rejected', 'completed'), defaultValue: 'pending' },
   amount: { type: DataTypes.FLOAT, allowNull: false },
 
   // 🔥 REQUIRED FIELDS (MISSING BEFORE)

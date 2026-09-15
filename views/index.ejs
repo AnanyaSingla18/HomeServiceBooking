@@ -13,19 +13,20 @@
 
   <main>
     <div class="container-fluid ps-0 pe-0">
-      <!-- Hero Image Section - Larger -->
+      <!-- Hero Image Section -->
       <div class="hero-section">
         <img 
-          src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=2000&q=80"
+          src="https://images.openai.com/static-rsc-4/8GRboAUl_B187Ro7LL5uFm3Sr14jlNJIQmRQQQdhfpe8QLaKYHeRMNYgQS3NSQM2N9W1Yjg5As_3FnEA7fujmXUwsTMgS1tktbvNDv97PuPpHCwyyUi7P5iwZbYJK2LYs6clVEg_uAND_tLbav1FFak6HJ2bV6I3Y6z9Yq0an5bOVEjy27N3CKcINzjs6FIG?purpose=fullsize"
           class="hero-image"
-          alt="Professional home service"
+          alt="Professional cleaning service in a bright home"
         >
         <div class="hero-overlay"></div>
         <div class="hero-content">
-          <h1 class="hero-title">Welcome to Home Service Booking</h1>
-          <p class="hero-subtitle">Trusted professionals at your doorstep — fast, reliable, and affordable.</p>
+          <span class="hero-eyebrow">RELIABLE HELP FOR YOUR HOME</span>
+          <h1 class="hero-title">Trusted home services, right when you need them.</h1>
+          <p class="hero-subtitle">Book trusted professionals for repairs, cleaning, maintenance, and everyday home care.</p>
           <a href="/services" class="btn btn-light btn-lg hero-btn">
-            🔧 View Services
+            VIEW SERVICES
           </a>
         </div>
       </div>
@@ -41,21 +42,36 @@
         <div class="row g-4">
           <div class="col-md-4">
             <div class="feature-card">
-              <div class="feature-icon">⭐</div>
+              <div class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" focusable="false">
+                  <path d="M12 3 5 6v5c0 4.5 2.9 8.3 7 10 4.1-1.7 7-5.5 7-10V6l-7-3Z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+              </div>
               <h5 class="feature-title">Trusted Professionals</h5>
               <p class="feature-text">Vetted and rated experts for every job with years of experience.</p>
             </div>
           </div>
           <div class="col-md-4">
             <div class="feature-card">
-              <div class="feature-icon">⚡</div>
+              <div class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" focusable="false">
+                  <rect x="3" y="4" width="18" height="17" rx="2"></rect>
+                  <path d="M16 2v4M8 2v4M3 9h18M8 13h3M8 17h5"></path>
+                </svg>
+              </div>
               <h5 class="feature-title">Easy Booking</h5>
               <p class="feature-text">Book in just a few clicks with flexible time slots.</p>
             </div>
           </div>
           <div class="col-md-4">
             <div class="feature-card">
-              <div class="feature-icon">💯</div>
+              <div class="feature-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="img" focusable="false">
+                  <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path>
+                  <path d="m9.5 12 1.7 1.7 3.4-3.4"></path>
+                </svg>
+              </div>
               <h5 class="feature-title">Satisfaction Guaranteed</h5>
               <p class="feature-text">Reliable service backed by our support team.</p>
             </div>
@@ -63,46 +79,85 @@
         </div>
       </section>
 
+      <section class="how-it-works-section" aria-labelledby="howItWorksTitle">
+        <div class="text-center mb-4">
+          <h2 class="section-heading" id="howItWorksTitle">How It Works</h2>
+          <p class="section-subheading">A simple way to get dependable help at home.</p>
+        </div>
+        <div class="how-it-works-grid">
+          <div class="how-it-works-step">
+            <span class="how-it-works-number">01</span>
+            <div><h3>Choose a Service</h3><p>Find the right service for your home.</p></div>
+          </div>
+          <div class="how-it-works-step">
+            <span class="how-it-works-number">02</span>
+            <div><h3>Select a Date &amp; Time</h3><p>Pick a convenient appointment slot.</p></div>
+          </div>
+          <div class="how-it-works-step">
+            <span class="how-it-works-number">03</span>
+            <div><h3>Get the Service</h3><p>A local provider comes ready to help.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <% if (services && services.length) { %>
+        <section class="popular-services-section" aria-labelledby="popularServicesTitle">
+          <div class="section-heading-row">
+            <div>
+              <h2 class="section-heading text-start" id="popularServicesTitle">Popular Services</h2>
+              <p class="section-subheading text-start">Start with one of our most requested home services.</p>
+            </div>
+            <a href="/services" class="popular-services-link">View all services</a>
+          </div>
+          <div class="popular-services-grid">
+            <% services.slice(0, 3).forEach(service => { %>
+              <article class="popular-service-card">
+                <div><span class="popular-service-label">Home service</span><h3><%= service.name %></h3><p><%= service.description %></p></div>
+                <div class="popular-service-footer"><strong>₹<%= service.price %></strong><a href="/booking?serviceId=<%= service._id || service.id %>" class="popular-book-link">Book now</a></div>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
+      <% const displayedReviews = reviews && reviews.length ? reviews : [
+        { rating: 5, comment: 'Amazing service! The plumber arrived on time and fixed everything perfectly. Highly recommend!', customerName: 'Rajesh Kumar', serviceName: 'Plumbing Service' },
+        { rating: 5, comment: 'Quick, professional, and affordable. The electrician was very knowledgeable and courteous.', customerName: 'Priya Sharma', serviceName: 'Electrical Service' },
+        { rating: 5, comment: 'My home looks spotless! The cleaning team was thorough and respectful of my space.', customerName: 'Anita Patel', serviceName: 'Home Cleaning' }
+      ]; %>
       <!-- Reviews Section -->
-      <section class="my-5 py-5 border-top border-bottom">
+      <section class="my-5 py-5 border-top border-bottom" id="reviews">
         <div class="text-center mb-5">
           <h2 class="section-heading">Customer Reviews</h2>
-          <p class="section-subheading">See what our customers say about our services</p>
+          <p class="section-subheading">Reviews shared by customers after their bookings are approved.</p>
         </div>
         <div class="row g-4">
-          <div class="col-md-4">
-            <div class="review-card">
-              <div class="review-stars">⭐⭐⭐⭐⭐</div>
-              <p class="review-text">"Amazing service! The plumber arrived on time and fixed everything perfectly. Highly recommend!"</p>
-              <div class="review-author">- Rajesh Kumar</div>
-              <div class="review-service">Plumbing Service</div>
+          <% displayedReviews.forEach(review => { %>
+            <div class="col-md-6 col-lg-4">
+              <article class="review-card">
+                <div class="review-card-top">
+                  <div class="review-stars" aria-label="<%= review.rating %> out of 5 stars">
+                    <% for (let star = 1; star <= 5; star += 1) { %>
+                      <svg class="review-star <%= star <= review.rating ? 'is-filled' : '' %>" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path></svg>
+                    <% } %>
+                  </div>
+                  <span class="review-rating"><%= review.rating %>.0</span>
+                </div>
+                <p class="review-text">“<%= review.comment %>”</p>
+                  <div class="review-customer">
+                    <span class="review-avatar"><%= review.customerName.split(' ').map(name => name.charAt(0)).slice(0, 2).join('').toUpperCase() %></span>
+                    <div><div class="review-author"><%= review.customerName %></div><div class="review-service"><%= review.serviceName %></div></div>
+                  </div>
+              </article>
             </div>
-          </div>
-          <div class="col-md-4">
-            <div class="review-card">
-              <div class="review-stars">⭐⭐⭐⭐⭐</div>
-              <p class="review-text">"Quick, professional, and affordable. The electrician was very knowledgeable and courteous."</p>
-              <div class="review-author">- Priya Sharma</div>
-              <div class="review-service">Electrical Service</div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="review-card">
-              <div class="review-stars">⭐⭐⭐⭐⭐</div>
-              <p class="review-text">"My home looks spotless! The cleaning team was thorough and respectful of my space."</p>
-              <div class="review-author">- Anita Patel</div>
-              <div class="review-service">Home Cleaning</div>
-            </div>
-          </div>
+          <% }) %>
         </div>
       </section>
 
     </div>
   </main>
 
-  <footer class="bg-dark text-white text-center py-3 mt-5">
-    <p class="m-0">&copy; Home Service Booking</p>
-  </footer>
+  <%- include('footer') %>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

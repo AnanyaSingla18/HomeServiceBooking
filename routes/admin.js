@@ -195,4 +195,46 @@ router.post('/bookings/:id/reject', auth, async (req, res) => {
   }
 });
 
+router.post('/bookings/:id/manage', auth, async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+
+    const { providerName, providerPhone, providerNote, status } = req.body;
+    const allowedStatuses = ['pending', 'approved', 'rejected', 'completed'];
+    if (!allowedStatuses.includes(status)) return res.status(400).json({ error: 'Invalid booking status' });
+
+    let sqlBooking = null;
+    if (sqlRaw) {
+      sqlBooking = await sqlRaw.Booking.findByPk(req.params.id);
+      if (sqlBooking) {
+        sqlBooking.status = status;
+        sqlBooking.providerName = providerName || sqlBooking.providerName;
+        sqlBooking.providerPhone = providerPhone || sqlBooking.providerPhone;
+        sqlBooking.providerNote = providerNote || sqlBooking.providerNote;
+        await sqlBooking.save();
+      }
+    }
+
+    let mongoBooking = null;
+    try {
+      mongoBooking = await require('../models/booking').findById(req.params.id);
+      if (mongoBooking) {
+        mongoBooking.status = status;
+        if (providerName) mongoBooking.providerName = providerName;
+        if (providerPhone) mongoBooking.providerPhone = providerPhone;
+        if (providerNote) mongoBooking.providerNote = providerNote;
+        await mongoBooking.save();
+      }
+    } catch (mongoErr) {
+      console.error('Mongo manage error:', mongoErr);
+    }
+
+    if (!sqlBooking && !mongoBooking) return res.status(404).json({ error: 'Booking not found' });
+    res.json({ success: true, booking: sqlBooking || mongoBooking });
+  } catch (err) {
+    console.error('Manage booking error:', err);
+    res.status(500).json({ error: 'Failed to update booking' });
+  }
+});
+
 module.exports = router;

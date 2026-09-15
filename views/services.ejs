@@ -16,19 +16,65 @@
       <p class="page-subtitle">Choose the service you need and proceed to a smooth booking experience.</p>
     </div>
     <% if (services && services.length) { %>
+      <div class="services-toolbar" aria-label="Service search and filters">
+        <label class="service-search" for="serviceSearch">
+          <span aria-hidden="true">⌕</span>
+          <input type="search" id="serviceSearch" placeholder="Search services" aria-label="Search services">
+        </label>
+        <label class="service-filter" for="serviceCategory">
+          <span>Category</span>
+          <select id="serviceCategory" class="form-select">
+            <option value="all">All services</option>
+            <option value="plumbing">Plumbing</option>
+            <option value="cleaning">Cleaning</option>
+            <option value="electrical">Electrical</option>
+            <option value="other">Other services</option>
+          </select>
+        </label>
+      </div>
+    <% } %>
+    <% if (services && services.length) { %>
       <div class="services-grid">
         <% services.forEach(s => { %>
-          <div class="service-card">
+          <% const serviceName = (s.name || '').toLowerCase(); %>
+          <% const isKnownService = serviceName.includes('plumb') || serviceName.includes('clean') || serviceName.includes('electric') || serviceName.includes('paint') || serviceName.includes('garden') || serviceName.includes('hvac') || serviceName.includes('air') || serviceName.includes('cool'); %>
+          <% const serviceCategory = serviceName.includes('plumb') ? 'plumbing' : serviceName.includes('clean') ? 'cleaning' : serviceName.includes('electric') ? 'electrical' : 'other'; %>
+          <div class="service-card" data-category="<%= serviceCategory %>" data-service-search="<%= [s.name, s.description].join(' ').toLowerCase() %>">
             <div class="service-top">
-              <div>
+              <div class="service-heading">
+                <span class="service-icon" aria-hidden="true">
+                  <% if (serviceName.includes('plumb')) { %>
+                    <svg viewBox="0 0 24 24"><path d="M7 4v5a5 5 0 0 0 10 0V4M5 4h4M15 4h4M12 14v6M9 20h6"></path></svg>
+                  <% } %>
+                  <% if (serviceName.includes('clean')) { %>
+                    <svg viewBox="0 0 24 24"><path d="m4 17 7-7 5 5-7 7H4v-5ZM13 6l2-2 5 5-2 2M3 21h18"></path></svg>
+                  <% } %>
+                  <% if (serviceName.includes('electric')) { %>
+                    <svg viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"></path></svg>
+                  <% } %>
+                  <% if (serviceName.includes('paint')) { %>
+                    <svg viewBox="0 0 24 24"><path d="M4 4h12a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h3M4 4v4M4 20h8"></path></svg>
+                  <% } %>
+                  <% if (serviceName.includes('garden')) { %>
+                    <svg viewBox="0 0 24 24"><path d="M12 21V9M12 13c-4 0-6-2-6-6 4 0 6 2 6 6ZM12 10c0-4 2-6 6-6 0 4-2 6-6 6Z"></path></svg>
+                  <% } %>
+                  <% if (serviceName.includes('hvac') || serviceName.includes('air') || serviceName.includes('cool')) { %>
+                    <svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <% } %>
+                  <% if (!isKnownService) { %>
+                    <svg viewBox="0 0 24 24"><path d="m14.7 6.3 3-3 3 3-3 3M13 8l3 3M4 20l8-8M3 15l6 6M15 4l-2-2-3 3 2 2"></path></svg>
+                  <% } %>
+                </span>
+                <div>
                 <h4 class="service-title"><%= s.name %></h4>
                 <p class="service-tag">Fast booking • Trusted local experts</p>
+                </div>
               </div>
               <div class="service-price">₹<%= s.price %></div>
             </div>
             <div class="service-body">
               <p class="service-description"><%= s.description %></p>
-              <div class="service-providers mb-4">
+              <div class="service-providers">
                 <h6 class="providers-title">Available Providers</h6>
                 <% if (s.providers && s.providers.length) { %>
                   <% s.providers.forEach(provider => { %>
@@ -43,11 +89,14 @@
                 <% } %>
               </div>
               <div class="service-footer">
-                <a href="/booking?serviceId=<%= s._id || s.id %>" class="btn btn-primary w-100 btn-lg">Book Now</a>
+                <a href="/booking?serviceId=<%= s._id || s.id %>" class="btn btn-primary w-100 service-book-btn">Book Now</a>
               </div>
             </div>
           </div>
         <% }) %>
+      </div>
+      <div class="services-no-results" id="servicesNoResults" hidden>
+        <strong>No services found.</strong> Try another search.
       </div>
     <% } else { %>
       <div class="empty-state">
@@ -57,6 +106,31 @@
       </div>
     <% } %>
   </div>
+  <%- include('footer') %>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('serviceSearch');
+      const categorySelect = document.getElementById('serviceCategory');
+      const noResults = document.getElementById('servicesNoResults');
+      const cards = document.querySelectorAll('.service-card');
+
+      function filterServices() {
+        const query = (searchInput?.value || '').trim().toLowerCase();
+        const category = categorySelect?.value || 'all';
+        let visible = 0;
+        cards.forEach(card => {
+          const matchesQuery = !query || card.dataset.serviceSearch.includes(query);
+          const matchesCategory = category === 'all' || card.dataset.category === category;
+          card.hidden = !(matchesQuery && matchesCategory);
+          if (!card.hidden) visible += 1;
+        });
+        if (noResults) noResults.hidden = visible !== 0;
+      }
+
+      searchInput?.addEventListener('input', filterServices);
+      categorySelect?.addEventListener('change', filterServices);
+    });
+  </script>
 </body>
 </html>

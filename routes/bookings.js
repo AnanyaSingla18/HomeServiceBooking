@@ -32,7 +32,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/bookings - protected route: create booking (requires JWT)
 router.post('/', auth, async (req, res) => {
   try {
-    const { service: serviceId, customerName, date, contactMethod, email, phone, timeSlot } = req.body;
+    const { service: serviceId, customerName, address, serviceDescription, date, contactMethod, email, phone, timeSlot, paymentMethod } = req.body;
     if (!serviceId || !customerName || !date || !contactMethod || !timeSlot) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -52,11 +52,14 @@ router.post('/', auth, async (req, res) => {
     const mongoPayload = {
       service: serviceId,
       customerName,
+      address: address || '',
+      serviceDescription: serviceDescription || '',
       date: new Date(date),
       contactMethod,
       email: contactMethod === 'email' ? email : undefined,
       phone: contactMethod === 'phone' ? phone : undefined,
-      timeSlot
+      timeSlot,
+      paymentMethod: paymentMethod === 'upi' ? 'upi' : 'cash'
     };
 
     // Assign a random provider from the available providers
@@ -93,12 +96,15 @@ router.post('/', auth, async (req, res) => {
     const sqlPayload = {
       serviceId: sqlServiceId,
       customerName,
+      address: address || null,
+      serviceDescription: serviceDescription || null,
       date: new Date(date),
       contactMethod,
       amount: service.price,
       email: contactMethod === 'email' ? email : undefined,
       phone: contactMethod === 'phone' ? phone : undefined,
       timeSlot,
+      paymentMethod: paymentMethod === 'upi' ? 'upi' : 'cash',
       providerName: assignedProvider.name,
       providerPhone: assignedProvider.phone,
       providerNote: assignedProvider.note

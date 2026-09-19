@@ -104,6 +104,7 @@ app.use(async (req, res, next) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/bookings', require('./routes/bookings'));
 app.use('/api/services', require('./routes/services'));
+app.use('/api/reviews', require('./routes/reviews'));
 app.use('/admin', require('./routes/admin'));
 
 app.get('/', async (req, res) => {
@@ -116,9 +117,15 @@ app.get('/', async (req, res) => {
       services = await Service.find().sort({ createdAt: -1 });
     }
     services = services.map(enrichService);
-    res.render('index', { services });
+    let reviews = [];
+    try {
+      reviews = await require('./models/review').find().sort({ createdAt: -1 }).limit(6).lean();
+    } catch (reviewErr) {
+      console.error('Homepage reviews error:', reviewErr);
+    }
+    res.render('index', { services, reviews });
   } catch (err) {
-    res.render('index', { services: [] });
+    res.render('index', { services: [], reviews: [] });
   }
 });
 
@@ -149,6 +156,22 @@ app.get('/bookings', async (req, res) => {
   }
 });
 
+app.get('/bookings/:id', async (req, res) => {
+  try {
+    let booking;
+    if (process.env.DB_TYPE === 'postgres') {
+      booking = await Booking.findById(req.params.id);
+    } else {
+      booking = await Booking.findById(req.params.id).populate('service');
+    }
+    if (!booking) return res.status(404).send('Booking not found');
+    res.render('booking-details', { booking });
+  } catch (err) {
+    console.error('Booking details error:', err);
+    res.status(404).send('Booking not found');
+  }
+});
+
 app.get('/booking', async (req, res) => {
   try {
     const serviceId = req.query.serviceId;
@@ -169,10 +192,12 @@ app.get('/booking', async (req, res) => {
       serviceId: serviceId || '',
       error: null,
       customerName: '',
+      phone: '',
+      address: '',
+      serviceDescription: '',
       date: '',
       contactMethod: '',
       email: '',
-      phone: '',
       timeSlot: '',
       upiId: '',
       paymentMethod: 'cash'
@@ -183,10 +208,12 @@ app.get('/booking', async (req, res) => {
       serviceId: '',
       error: 'Error loading service',
       customerName: '',
+      phone: '',
+      address: '',
+      serviceDescription: '',
       date: '',
       contactMethod: '',
       email: '',
-      phone: '',
       timeSlot: '',
       upiId: '',
       paymentMethod: 'cash'
@@ -196,32 +223,35 @@ app.get('/booking', async (req, res) => {
 
 app.post('/booking', async (req, res) => {
   try {
-    const { serviceId, customerName, date, contactMethod, timeSlot } = req.body;
+    const { serviceId, customerName, phone, address, serviceDescription, date, contactMethod, timeSlot, paymentMethod } = req.body;
 
     if (!serviceId || !serviceId.trim()) {
-      return res.render('booking', { service: null, serviceId: '', error: 'Service ID required', customerName, date, contactMethod, email: '', phone: '', upiId: '', timeSlot, paymentMethod: 'cash' });
+      return res.render('booking', { service: null, serviceId: '', error: 'Service ID required', customerName, phone, address, serviceDescription, date, contactMethod, email: '', upiId: '', timeSlot, paymentMethod: paymentMethod || 'cash' });
     }
 
     if (!customerName || !date || !contactMethod || !timeSlot) {
       const service = await Service.findById(serviceId);
-      return res.render('booking', { service, serviceId, error: 'Missing required fields', customerName, date, contactMethod, email: '', phone: '', upiId: '', timeSlot, paymentMethod: req.body?.paymentMethod || 'cash' });
+      return res.render('booking', { service, serviceId, error: 'Missing required fields', customerName, phone, address, serviceDescription, date, contactMethod, email: '', upiId: '', timeSlot, paymentMethod: paymentMethod || 'cash' });
     }
 
     let service = await Service.findById(serviceId);
     if (service) service = enrichService(service);
     if (!service) {
-      return res.render('booking', { service: null, serviceId, error: 'Service not found', customerName, date, contactMethod, email: '', phone: '', upiId: '', timeSlot, paymentMethod: req.body?.paymentMethod || 'cash' });
+      return res.render('booking', { service: null, serviceId, error: 'Service not found', customerName, phone, address, serviceDescription, date, contactMethod, email: '', upiId: '', timeSlot, paymentMethod: paymentMethod || 'cash' });
     }
 
     // Prepare payloads for both databases
     const mongoPayload = {
       service: serviceId,
       customerName,
+      phone: phone || null,
+      address: address || '',
+      serviceDescription: serviceDescription || '',
       date: new Date(date),
       contactMethod,
       email: req.body.email || null,
-      phone: req.body.phone || null,
-      timeSlot
+      timeSlot,
+      paymentMethod: paymentMethod === 'upi' ? 'upi' : 'cash'
     };
 
     // Assign a random provider from the available providers
@@ -246,12 +276,15 @@ app.post('/booking', async (req, res) => {
     const sqlPayload = {
       serviceId: sqlServiceId,
       customerName,
+      address: address || null,
+      serviceDescription: serviceDescription || null,
       date: new Date(date),
       contactMethod,
       email: req.body.email || null,
-      phone: req.body.phone || null,
+      phone: phone || null,
       amount: service.price,
       timeSlot,
+      paymentMethod: paymentMethod === 'upi' ? 'upi' : 'cash',
       providerName: assignedProvider.name,
       providerPhone: assignedProvider.phone,
       providerNote: assignedProvider.note
@@ -311,10 +344,12 @@ app.post('/booking', async (req, res) => {
       serviceId,
       error: `Booking failed. Try again.${err.message ? ' (' + err.message + ')' : ''}`,
       customerName: req.body?.customerName || '',
+      phone: req.body?.phone || '',
+      address: req.body?.address || '',
+      serviceDescription: req.body?.serviceDescription || '',
       date: req.body?.date || '',
       contactMethod: req.body?.contactMethod || '',
       email: req.body?.email || '',
-      phone: req.body?.phone || '',
       upiId: req.body?.upiId || '',
       timeSlot: req.body?.timeSlot || '',
       paymentMethod: req.body?.paymentMethod || 'cash'

@@ -10,17 +10,72 @@
 <body>
   <%- include('navbar') %>
   <div class="container py-5">
+    <% const bookingList = bookings || []; %>
+    <% const totalBookings = bookingList.length; %>
+    <% const pendingBookings = bookingList.filter(b => (b.status || 'pending') === 'pending').length; %>
+    <% const approvedBookings = bookingList.filter(b => b.status === 'approved').length; %>
+    <% const rejectedBookings = bookingList.filter(b => b.status === 'rejected').length; %>
+    <% const completedBookings = bookingList.filter(b => b.status === 'completed').length; %>
     <div class="page-header mb-5">
-      <h1 class="page-title">📋 Bookings Management</h1>
+      <div class="admin-page-heading">
+        <div>
+          <span class="admin-kicker">Operations overview</span>
+          <h1 class="page-title">Bookings Management</h1>
+        </div>
+        <span class="admin-role-badge">Admin workspace</span>
+      </div>
       <p class="page-subtitle">Review and manage all customer bookings</p>
     </div>
+    <section class="admin-summary" aria-label="Booking summary">
+      <div class="admin-summary-card summary-total">
+        <span class="admin-summary-icon">▦</span>
+        <div><strong><%= totalBookings %></strong><span>Total bookings</span></div>
+      </div>
+      <div class="admin-summary-card summary-pending">
+        <span class="admin-summary-icon">◷</span>
+        <div><strong><%= pendingBookings %></strong><span>Pending bookings</span></div>
+      </div>
+      <div class="admin-summary-card summary-approved">
+        <span class="admin-summary-icon">✓</span>
+        <div><strong><%= approvedBookings %></strong><span>Approved bookings</span></div>
+      </div>
+      <div class="admin-summary-card summary-rejected">
+        <span class="admin-summary-icon">×</span>
+        <div><strong><%= rejectedBookings %></strong><span>Rejected bookings</span></div>
+      </div>
+      <div class="admin-summary-card summary-completed">
+        <span class="admin-summary-icon">✓</span>
+        <div><strong><%= completedBookings %></strong><span>Completed bookings</span></div>
+      </div>
+    </section>
+
+    <% if (bookingList.length) { %>
+      <section class="admin-toolbar" aria-label="Booking filters">
+        <div class="admin-search-wrap">
+          <span aria-hidden="true">⌕</span>
+          <input type="search" id="bookingSearch" placeholder="Search by customer, service, or contact" aria-label="Search bookings">
+        </div>
+        <label class="admin-filter-label" for="bookingStatusFilter">
+          <span>Filter status</span>
+          <select id="bookingStatusFilter" class="form-select">
+            <option value="all">All bookings</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="completed">Completed</option>
+          </select>
+        </label>
+      </section>
+    <% } %>
     <% if (bookings && bookings.length) { %>
       <div class="admin-bookings-grid">
         <% bookings.forEach(b => { %>
-          <div class="admin-booking-card" id="row-<%= b._id || b.id %>">
+          <% const bookingId = b._id || b.id; %>
+          <% const bookingStatus = b.status || 'pending'; %>
+          <div class="admin-booking-card" id="row-<%= bookingId %>" data-status="<%= bookingStatus %>" data-search="<%= [b.customerName, b.service ? b.service.name : 'Service', b.email, b.phone].filter(Boolean).join(' ').toLowerCase() %>">
             <div class="booking-card-header">
               <h5><%= b.service ? b.service.name : 'Service' %></h5>
-              <span id="status-<%= b._id || b.id %>" class="badge bg-<%= b.status === 'approved' ? 'success' : b.status === 'rejected' ? 'danger' : 'warning' %>"><%= b.status %></span>
+              <span id="status-<%= bookingId %>" class="admin-status-badge admin-status-<%= bookingStatus %>"><%= bookingStatus.charAt(0).toUpperCase() + bookingStatus.slice(1) %></span>
             </div>
             <div class="booking-card-body">
               <div class="booking-detail">
@@ -41,16 +96,30 @@
               </div>
             </div>
             <div class="booking-card-footer">
-              <% if (b.status === 'pending') { %>
-                <button class="btn btn-success btn-sm me-2" onclick="action('<%= b._id || b.id %>','approve')">✅ Approve</button>
-                <button class="btn btn-danger btn-sm" onclick="action('<%= b._id || b.id %>','reject')">❌ Reject</button>
+              <% if (bookingStatus === 'pending') { %>
+                <button class="admin-action-btn approve-btn" onclick="action('<%= bookingId %>','approve')">✓ Approve</button>
+                <button class="admin-action-btn reject-btn" onclick="action('<%= bookingId %>','reject')">× Reject</button>
               <% } else { %>
                 <small class="text-muted">Processed by: <%= b.approvedBy ? b.approvedBy.email : '—' %></small>
               <% } %>
             </div>
+            <div class="admin-manage-panel">
+              <input class="admin-manage-input" id="provider-name-<%= bookingId %>" value="<%= b.providerName || '' %>" placeholder="Provider name" aria-label="Provider name">
+              <input class="admin-manage-input" id="provider-phone-<%= bookingId %>" value="<%= b.providerPhone || '' %>" placeholder="Provider phone" aria-label="Provider phone">
+              <input class="admin-manage-input" id="provider-note-<%= bookingId %>" value="<%= b.providerNote || '' %>" placeholder="Specialization" aria-label="Provider specialization">
+              <div class="admin-manage-row">
+                <select class="admin-manage-input" id="booking-status-<%= bookingId %>" aria-label="Update booking status">
+                  <% ['pending', 'approved', 'rejected', 'completed'].forEach(option => { %>
+                    <option value="<%= option %>" <%= bookingStatus === option ? 'selected' : '' %>><%= option.charAt(0).toUpperCase() + option.slice(1) %></option>
+                  <% }) %>
+                </select>
+                <button type="button" class="admin-manage-btn" onclick="manageBooking('<%= bookingId %>')">Save assignment</button>
+              </div>
+            </div>
           </div>
         <% }) %>
       </div>
+      <div class="admin-no-results" id="adminNoResults" hidden>No bookings match your search.</div>
     <% } else { %>
       <div class="empty-state">
         <div class="empty-icon">📋</div>
@@ -60,19 +129,74 @@
     <% } %>
   </div>
 
+  <%- include('footer') %>
   <script>
+    const searchInput = document.getElementById('bookingSearch');
+    const statusFilter = document.getElementById('bookingStatusFilter');
+    const noResults = document.getElementById('adminNoResults');
+
+    function filterBookings() {
+      const query = (searchInput?.value || '').trim().toLowerCase();
+      const status = statusFilter?.value || 'all';
+      const cards = document.querySelectorAll('.admin-booking-card');
+      let visible = 0;
+      cards.forEach(card => {
+        const matchesSearch = !query || card.dataset.search.includes(query);
+        const matchesStatus = status === 'all' || card.dataset.status === status;
+        card.hidden = !(matchesSearch && matchesStatus);
+        if (!card.hidden) visible += 1;
+      });
+      if (noResults) noResults.hidden = visible !== 0;
+    }
+
+    searchInput?.addEventListener('input', filterBookings);
+    statusFilter?.addEventListener('change', filterBookings);
+
     async function action(id, act) {
       const url = `/admin/bookings/${id}/${act}`;
       try {
         const res = await fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } });
         const json = await res.json();
         if (res.ok) {
-          document.getElementById('status-' + id).innerHTML = '<span class="badge bg-' + (json.booking.status === 'approved' ? 'success' : 'danger') + '">' + json.booking.status + '</span>';
+          const status = json.booking.status;
+          const statusElement = document.getElementById('status-' + id);
+          const card = document.getElementById('row-' + id);
+          statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+          statusElement.className = 'admin-status-badge admin-status-' + status;
+          card.dataset.status = status;
+          filterBookings();
         } else {
           alert(json.error || 'Failed');
         }
       } catch (err) {
         alert('Error');
+      }
+    }
+
+    async function manageBooking(id) {
+      const payload = {
+        providerName: document.getElementById('provider-name-' + id).value,
+        providerPhone: document.getElementById('provider-phone-' + id).value,
+        providerNote: document.getElementById('provider-note-' + id).value,
+        status: document.getElementById('booking-status-' + id).value
+      };
+      try {
+        const res = await fetch(`/admin/bookings/${id}/manage`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (!res.ok) return alert(json.error || 'Failed to update booking');
+        const card = document.getElementById('row-' + id);
+        const statusElement = document.getElementById('status-' + id);
+        statusElement.textContent = json.booking.status.charAt(0).toUpperCase() + json.booking.status.slice(1);
+        statusElement.className = 'admin-status-badge admin-status-' + json.booking.status;
+        card.dataset.status = json.booking.status;
+        filterBookings();
+      } catch (err) {
+        alert('Error updating booking');
       }
     }
   </script>

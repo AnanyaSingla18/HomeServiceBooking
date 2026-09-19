@@ -54,14 +54,26 @@
     height: 350px;
   }
 
+  .hero-content {
+    left: 1.25rem;
+    width: calc(100% - 2.5rem);
+  }
+
+  .hero-eyebrow {
+    margin-bottom: 0.75rem;
+    font-size: 0.68rem;
+  }
+
   .hero-title {
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.7rem;
+    line-height: 1.12;
+    margin-bottom: 0.7rem;
   }
 
   .hero-subtitle {
     font-size: 0.95rem;
-    margin-bottom: 1.5rem;
+    line-height: 1.55;
+    margin-bottom: 1.4rem;
   }
 
   .hero-btn {
@@ -167,6 +179,11 @@
   .hero-section {
     height: 280px;
     margin-bottom: 0;
+  }
+
+  .hero-content {
+    left: 1rem;
+    width: calc(100% - 2rem);
   }
 
   .hero-title {

@@ -17,7 +17,10 @@
           <h1 class="page-title">Checkout</h1>
           <p class="page-subtitle mb-0">Confirm your service details and choose a payment option for your booking.</p>
         </div>
-        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary">Secure booking</div>
+        <div class="secure-booking-badge">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>
+          <span>Secure booking</span>
+        </div>
       </div>
 
       <div class="row gx-4 gy-4">
@@ -32,13 +35,13 @@
               <% } %>
 
               <div class="checkout-stepper mb-4">
-                <div class="step active">
+                <div class="step is-complete">
                   <span>1</span>
                   <small>Details</small>
                 </div>
                 <div class="step active">
                   <span>2</span>
-                  <small>Payment</small>
+                  <small>Payment <b>Current</b></small>
                 </div>
                 <div class="step">
                   <span>3</span>
@@ -60,6 +63,10 @@
                     <div class="col-md-6">
                       <label for="date" class="form-label">Date</label>
                       <input type="date" class="form-control" id="date" name="date" value="<%= date || '' %>" required>
+                    </div>
+                    <div class="col-12">
+                      <label for="address" class="form-label">Service address</label>
+                      <input type="text" class="form-control" id="address" name="address" value="<%= address || '' %>" placeholder="Where should we provide the service?" required>
                     </div>
                     <div class="col-md-12">
                       <label class="form-label d-block">Contact</label>
@@ -97,6 +104,10 @@
                         <option value="evening" <% if (timeSlot === 'evening') { %>selected<% } %>>Evening (4-8)</option>
                       </select>
                     </div>
+                    <div class="col-12">
+                      <label for="serviceDescription" class="form-label">What do you need help with?</label>
+                      <textarea class="form-control" id="serviceDescription" name="serviceDescription" rows="3" maxlength="500" placeholder="Add a short description of the service needed"><%= serviceDescription || '' %></textarea>
+                    </div>
                   </div>
                 </section>
 
@@ -127,7 +138,7 @@
                   <div class="payment-options">
                     <button type="button" class="payment-option-card active" data-value="cash">
                       <div>
-                        <strong>Cash on service</strong>
+                        <strong>Pay After Service</strong>
                         <p class="small">Pay in cash after job completion.</p>
                       </div>
                     </button>
@@ -139,12 +150,16 @@
                     </button>
                   </div>
                   <div class="payment-summary" id="paymentSummary">
-                    Cash selected. No online payment is required now.
+                    Pay After Service selected. No online payment is required now.
                   </div>
                 </section>
 
                 <section class="section-card mb-4 upi-section <%= paymentMethod === 'upi' ? 'd-block' : 'd-none' %>" id="upiSection">
                   <h3 class="section-title">UPI details</h3>
+                  <div class="demo-payment-panel">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=HomeServiceDemoPayment<%= service ? service.price : 0 %>" alt="Demo UPI QR code">
+                    <div><strong>Demo payment: ₹<%= service ? service.price : 0 %></strong><p>Scan this demo QR code, then acknowledge payment below. No payment is verified or processed.</p><button type="button" class="btn btn-outline-primary btn-sm" id="upiPaidButton">I Have Paid</button><span id="upiPaidMessage" class="upi-paid-message" role="status"></span></div>
+                  </div>
                   <div class="mb-3">
                     <label for="upiId" class="form-label">UPI ID</label>
                     <input type="text" class="form-control" id="upiId" name="upiId" value="<%= upiId || '' %>" placeholder="example@upi">
@@ -180,6 +195,14 @@
               <div class="summary-value">₹<%= service ? service.price : 0 %></div>
             </div>
             <div class="summary-block">
+              <div class="summary-label">Customer</div>
+              <div class="summary-value" id="summaryCustomer"><%= customerName || 'Not entered' %></div>
+            </div>
+            <div class="summary-block">
+              <div class="summary-label">Address</div>
+              <div class="summary-value" id="summaryAddress"><%= address || 'Not entered' %></div>
+            </div>
+            <div class="summary-block">
               <div class="summary-label">Date</div>
               <div class="summary-value" id="summaryDate"><%= date || 'Not selected' %></div>
             </div>
@@ -212,12 +235,12 @@
               </div>
             </div>
             <div class="summary-block">
-              <div class="summary-label">Provider location</div>
-              <div class="summary-value text-success">Nearest service partner is coming to your area.</div>
+              <div class="summary-label">Provider assignment</div>
+              <div class="summary-value text-muted">A provider will be assigned when this booking is created.</div>
             </div>
             <div class="summary-block">
-              <div class="summary-label">Track provider</div>
-              <div class="summary-value text-muted">After booking, open the confirmation page to view live provider tracking.</div>
+              <div class="summary-label">Booking updates</div>
+              <div class="summary-value text-muted">The confirmation page shows your approval status and scheduled appointment details.</div>
             </div>
 
             <div class="summary-total mt-4 p-4 rounded-4 bg-primary bg-opacity-10">
@@ -241,9 +264,7 @@
     </div>
   </main>
 
-  <footer class="bg-dark text-white text-center py-3 mt-5">
-    <p class="m-0">&copy; 2025 Home Service Booking</p>
-  </footer>
+  <%- include('footer') %>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -262,6 +283,10 @@
       const summaryDate = document.getElementById('summaryDate');
       const summaryTime = document.getElementById('summaryTime');
       const summaryPayment = document.getElementById('summaryPayment');
+      const customerNameInput = document.getElementById('customerName');
+      const addressInput = document.getElementById('address');
+      const upiPaidButton = document.getElementById('upiPaidButton');
+      const upiPaidMessage = document.getElementById('upiPaidMessage');
 
       function toggleContactFields() {
         if (emailRadio && emailRadio.checked) {
@@ -287,7 +312,7 @@
         if (paymentSummary) {
           paymentSummary.textContent = method === 'upi'
             ? 'UPI selected. Enter your UPI ID below and confirm payment details.'
-            : 'Cash selected. No online payment is required now.';
+            : 'Pay After Service selected. No online payment is required now.';
         }
         if (submitBtn) {
           submitBtn.textContent = method === 'upi' ? '✅ Confirm & Pay with UPI' : '✅ Confirm Booking';
@@ -299,6 +324,10 @@
         if (summaryDate) summaryDate.textContent = dateInput.value || 'Not selected';
         if (summaryTime) summaryTime.textContent = timeSlotInput.value || 'Not selected';
         if (summaryPayment) summaryPayment.textContent = paymentMethodInput.value === 'upi' ? 'UPI' : 'Cash';
+        const summaryCustomer = document.getElementById('summaryCustomer');
+        const summaryAddress = document.getElementById('summaryAddress');
+        if (summaryCustomer) summaryCustomer.textContent = customerNameInput.value || 'Not entered';
+        if (summaryAddress) summaryAddress.textContent = addressInput.value || 'Not entered';
       }
 
       if (emailRadio) emailRadio.addEventListener('change', toggleContactFields);
@@ -323,6 +352,12 @@
 
       if (dateInput) dateInput.addEventListener('change', updateSummary);
       if (timeSlotInput) timeSlotInput.addEventListener('change', updateSummary);
+      if (customerNameInput) customerNameInput.addEventListener('input', updateSummary);
+      if (addressInput) addressInput.addEventListener('input', updateSummary);
+      if (upiPaidButton) upiPaidButton.addEventListener('click', function() {
+        upiPaidMessage.textContent = 'Payment acknowledged for this demo flow.';
+        upiPaidButton.disabled = true;
+      });
 
       const initialPaymentMethod = paymentMethodInput.value || 'cash';
       updatePaymentSelection(initialPaymentMethod);

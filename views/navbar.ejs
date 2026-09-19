@@ -10,14 +10,14 @@
         <li class="nav-item"><a class="nav-link" href="/services">Services</a></li>
         <li class="nav-item"><a class="nav-link" href="/bookings">Bookings</a></li>
         <% if (locals.user && locals.user.role === 'admin') { %>
-          <li class="nav-item"><a class="nav-link" href="/admin/bookings">Admin</a></li>
+          <li class="nav-item"><a class="nav-link admin-nav-link" href="/admin/bookings">Admin</a></li>
         <% } %>
       </ul>
       <ul class="navbar-nav ms-auto">
         <% if (locals.user) { %>
           <li class="nav-item"><span class="nav-link">👤 <%= locals.user.name %></span></li>
           <li class="nav-item">
-            <a href="/admin/logout" class="btn btn-outline-light btn-sm ms-2">Logout</a>
+            <a href="/admin/logout" class="btn btn-outline-light btn-sm ms-2 admin-logout-link">Logout</a>
           </li>
         <% } else { %>
           <li class="nav-item"><a class="nav-link" href="/admin/login">Admin Login</a></li>

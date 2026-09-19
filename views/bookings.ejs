@@ -18,25 +18,45 @@
     <% if (bookings && bookings.length) { %>
       <div class="bookings-grid">
         <% bookings.forEach(b => { %>
+          <% const bookingStatus = b.status || 'pending'; %>
+          <% const bookingReference = String(b._id || b.id); %>
           <div class="booking-card">
             <div class="booking-header">
-              <h5 class="booking-service"><%= b.service ? b.service.name : 'Service' %></h5>
-              <span class="badge bg-<%= b.status === 'approved' ? 'success' : b.status === 'rejected' ? 'danger' : 'warning' %>"><%= b.status || 'pending' %></span>
+              <div>
+                <span class="booking-kicker">Service appointment</span>
+                <h5 class="booking-service"><%= b.service ? b.service.name : 'Service' %></h5>
+              </div>
+              <span class="booking-status booking-status-<%= bookingStatus %>"><%= bookingStatus.charAt(0).toUpperCase() + bookingStatus.slice(1) %></span>
+            </div>
+            <div class="booking-schedule">
+              <div class="booking-date-icon">📅</div>
+              <div>
+                <span class="booking-detail-label">Scheduled for</span>
+                <strong><%= new Date(b.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) %></strong>
+                <span class="booking-time"><%= b.timeSlot %> time slot</span>
+              </div>
+            </div>
+            <div class="booking-notification booking-notification-<%= bookingStatus %>">
+              <% if (bookingStatus === 'approved') { %>Your booking has been approved.<% } else if (bookingStatus === 'rejected') { %>Your booking needs attention. Please choose another service time.<% } else if (bookingStatus === 'completed') { %>Your service has been completed. We hope you enjoyed it.<% } else { %>Your booking is waiting for approval.<% } %>
             </div>
             <div class="booking-details">
               <p class="booking-row">
-                <strong>Name:</strong> <%= b.customerName %>
+                <span>Customer</span><strong><%= b.customerName %></strong>
               </p>
               <p class="booking-row">
-                <strong>Date:</strong> <%= new Date(b.date).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) %>
+                <span>Contact</span><strong><%= b.contactMethod === 'email' ? b.email : b.phone %></strong>
               </p>
               <p class="booking-row">
-                <strong>Time:</strong> <%= b.timeSlot %>
+                <span>Provider</span><strong><%= b.providerName || 'Awaiting assignment' %></strong>
               </p>
               <p class="booking-row">
-                <strong>Contact:</strong> <%= b.contactMethod === 'email' ? b.email : b.phone %>
+                <span>Amount</span><strong>₹<%= b.amount || (b.service && b.service.price) || '—' %></strong>
+              </p>
+              <p class="booking-row">
+                <span>Reference</span><strong class="booking-reference" title="<%= bookingReference %>"><%= bookingReference.length > 10 ? `...${bookingReference.slice(-8)}` : bookingReference %></strong>
               </p>
             </div>
+            <a class="booking-details-link" href="/bookings/<%= b._id || b.id %>">View details</a>
           </div>
         <% }) %>
       </div>
@@ -44,11 +64,12 @@
       <div class="empty-state">
         <div class="empty-icon">📅</div>
         <h4>No bookings yet</h4>
-        <p>Start by booking a service from our available options.</p>
+        <p>Book your first home service and we'll take care of the rest.</p>
         <a href="/services" class="btn btn-primary mt-3">Browse Services</a>
       </div>
     <% } %>
   </div>
+  <%- include('footer') %>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

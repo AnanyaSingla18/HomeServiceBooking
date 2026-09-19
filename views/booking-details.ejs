@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Details</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+</head>
+<body>
+  <%- include('navbar') %>
+  <% const bookingId = booking._id || booking.id; %>
+  <% const status = booking.status || 'pending'; %>
+  <% const amount = booking.amount || (booking.service && booking.service.price) || 0; %>
+  <main>
+    <div class="container py-5 booking-details-page">
+      <div class="page-header">
+        <span class="booking-kicker">Booking reference</span>
+        <h1 class="page-title">Booking details</h1>
+        <p class="page-subtitle">A complete summary of your scheduled home service.</p>
+      </div>
+      <section class="booking-details-panel">
+        <div class="booking-details-panel-header">
+          <div>
+            <span class="booking-kicker">Service</span>
+            <h2><%= booking.service ? booking.service.name : 'Home service' %></h2>
+          </div>
+          <span class="booking-status booking-status-<%= status %>"><%= status.charAt(0).toUpperCase() + status.slice(1) %></span>
+        </div>
+        <div class="booking-details-grid">
+          <div><span>Booking ID</span><strong title="<%= bookingId %>"><%= bookingId %></strong></div>
+          <div><span>Scheduled date</span><strong><%= new Date(booking.date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %></strong></div>
+          <div><span>Time slot</span><strong><%= booking.timeSlot %></strong></div>
+          <div><span>Price</span><strong>₹<%= booking.amount || (booking.service && booking.service.price) || '—' %></strong></div>
+          <div><span>Payment method</span><strong><%= booking.paymentMethod === 'upi' ? 'Pay Using UPI' : 'Pay After Service' %></strong></div>
+          <div><span>Service address</span><strong><%= booking.address || '—' %></strong></div>
+          <div><span>Service request</span><strong><%= booking.serviceDescription || '—' %></strong></div>
+          <div><span>Customer</span><strong><%= booking.customerName %></strong></div>
+          <div><span>Contact</span><strong><%= booking.contactMethod === 'email' ? booking.email : booking.phone %></strong></div>
+          <div><span>Provider</span><strong><%= booking.providerName || 'Awaiting assignment' %></strong></div>
+          <div><span>Provider specialization</span><strong><%= booking.providerNote || '—' %></strong></div>
+          <div><span>Provider contact</span><strong><%= booking.providerPhone || '—' %></strong></div>
+        </div>
+        <div class="booking-details-progress">
+          <div class="booking-detail-progress-step <%= ['pending','approved','completed'].includes(status) ? 'is-complete' : '' %>">Booking created</div>
+          <div class="booking-detail-progress-step <%= ['approved','completed'].includes(status) ? 'is-complete' : '' %>">Provider assigned</div>
+          <div class="booking-detail-progress-step <%= ['approved','completed'].includes(status) ? 'is-complete' : '' %>">Service scheduled</div>
+          <div class="booking-detail-progress-step <%= status === 'completed' ? 'is-complete' : '' %>">Service completed</div>
+        </div>
+        <div class="booking-details-actions">
+          <a href="/bookings" class="btn btn-outline-secondary">Back to My Bookings</a>
+          <a href="/services" class="btn btn-primary">Book another service</a>
+        </div>
+      </section>
+    </div>
+  </main>
+  <%- include('footer') %>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
